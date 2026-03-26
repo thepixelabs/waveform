@@ -161,10 +161,15 @@ DEFAULT_SETTINGS = {
 
 
 def get_playlist_prefix(settings=None):
-    """Get playlist name prefix from settings, falling back to default."""
+    """Get playlist name prefix from settings, falling back to default.
+
+    Supports {name} template which gets replaced with BIRTHDAY_NAME from .env.
+    """
     if settings:
-        return settings.get("playlist_prefix", DEFAULT_PLAYLIST_PREFIX)
-    return DEFAULT_PLAYLIST_PREFIX
+        prefix = settings.get("playlist_prefix", "") or DEFAULT_PLAYLIST_PREFIX
+    else:
+        prefix = DEFAULT_PLAYLIST_PREFIX
+    return prefix.replace("{name}", BIRTHDAY_NAME)
 
 
 def parse_time(t):
@@ -243,12 +248,45 @@ def save_json(path, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def load_history():
-    return load_json(HISTORY_FILE, {"used_songs": {}})
+def load_all_history():
+    """Load the full history file (all playlist names)."""
+    return load_json(HISTORY_FILE, {})
 
 
-def save_history(history):
-    save_json(HISTORY_FILE, history)
+def save_all_history(all_history):
+    """Save the full history file."""
+    save_json(HISTORY_FILE, all_history)
+
+
+def load_history(playlist_name=None):
+    """Load history for a specific playlist name. Falls back to legacy format."""
+    all_hist = load_all_history()
+    # Migrate legacy format (flat {"used_songs": {...}})
+    if "used_songs" in all_hist and not any(
+        isinstance(v, dict) and "used_songs" in v for v in all_hist.values()
+    ):
+        legacy = {"used_songs": all_hist.pop("used_songs")}
+        migrated_name = DEFAULT_PLAYLIST_PREFIX
+        all_hist[migrated_name] = legacy
+        save_all_history(all_hist)
+    if playlist_name and playlist_name in all_hist:
+        return all_hist[playlist_name]
+    return {"used_songs": {}}
+
+
+def save_history(history, playlist_name=None):
+    """Save history for a specific playlist name."""
+    if not playlist_name:
+        playlist_name = DEFAULT_PLAYLIST_PREFIX
+    all_hist = load_all_history()
+    all_hist[playlist_name] = history
+    save_all_history(all_hist)
+
+
+def get_history_names():
+    """Get all playlist names that have history."""
+    all_hist = load_all_history()
+    return [k for k in all_hist if isinstance(all_hist[k], dict) and all_hist[k].get("used_songs")]
 
 
 def load_settings():
@@ -273,7 +311,7 @@ def get_used_keys(history, block_key):
     return set(history.get("used_songs", {}).get(block_key, []))
 
 
-def mark_used(history, block_key, songs):
+def mark_used(history, block_key, songs, playlist_name=None):
     if "used_songs" not in history:
         history["used_songs"] = {}
     if block_key not in history["used_songs"]:
@@ -282,13 +320,19 @@ def mark_used(history, block_key, songs):
         key = f"{title}||{artist}"
         if key not in history["used_songs"][block_key]:
             history["used_songs"][block_key].append(key)
-    save_history(history)
+    save_history(history, playlist_name)
 
 
-def clear_history():
-    if os.path.exists(HISTORY_FILE):
-        os.remove(HISTORY_FILE)
-    print("  🗑️  Song history cleared.\n")
+def clear_history(playlist_name=None):
+    """Clear history for a specific playlist or all history."""
+    if playlist_name:
+        all_hist = load_all_history()
+        if playlist_name in all_hist:
+            del all_hist[playlist_name]
+            save_all_history(all_hist)
+    else:
+        if os.path.exists(HISTORY_FILE):
+            os.remove(HISTORY_FILE)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -811,7 +855,8 @@ def generate_all_songs(sp, settings, extra_for_split=False):
     If extra_for_split is True and split_extra_pct > 0, requests more songs per block
     so split playlists have extra variety for shuffle mode.
     """
-    history = load_history()
+    playlist_name = get_playlist_prefix(settings)
+    history = load_history(playlist_name)
     blocks = build_blocks_from_schedule(settings)
 
     # Apply extra track multiplier for split/both modes
@@ -833,19 +878,16 @@ def generate_all_songs(sp, settings, extra_for_split=False):
     return blocks, all_songs, history
 
 
-def create_full_from_songs(sp, blocks, all_songs, history, settings=None):
+def create_full_from_songs(sp, blocks, all_songs, history, settings=None, action="create", existing=None):
     """Create a single Full Night playlist from already-generated songs."""
+    existing = existing or {}
     user_id = sp.current_user()["id"]
     prefix = get_playlist_prefix(settings)
     name = f"{prefix} 🎂🦄 Full Night"
     flow = " → ".join(f"{b['emoji']} {b['subtitle']}" for b in blocks)
     desc = f"{BIRTHDAY_NAME}'s party playlist: {flow} 🎂"
 
-    playlist = sp.user_playlist_create(
-        user=user_id, name=name, public=False, description=desc
-    )
-    pid = playlist["id"]
-    print(f"\n  ✅ Created playlist: {name}")
+    pid = prepare_playlist(sp, user_id, name, desc, action, existing)
 
     img = generate_cover_image(
         prefix, "Full Night", (180, 50, 140), (30, 20, 60)
@@ -867,7 +909,7 @@ def create_full_from_songs(sp, blocks, all_songs, history, settings=None):
             total_found += found
             all_not_found.extend(nf)
             if history:
-                mark_used(history, block["key"], songs)
+                mark_used(history, block["key"], songs, prefix)
 
     print(f"\n  🎵 Added {total_found} tracks to Full Night playlist.")
     if all_not_found:
@@ -875,8 +917,9 @@ def create_full_from_songs(sp, blocks, all_songs, history, settings=None):
     return pid
 
 
-def create_split_from_songs(sp, blocks, all_songs, history=None, settings=None):
+def create_split_from_songs(sp, blocks, all_songs, history=None, settings=None, action="create", existing=None):
     """Create per-block playlists from already-generated songs (no extra Gemini call)."""
+    existing = existing or {}
     user_id = sp.current_user()["id"]
     shuffle = settings.get("shuffle_within_blocks", True) if settings else True
     print()
@@ -893,10 +936,7 @@ def create_split_from_songs(sp, blocks, all_songs, history=None, settings=None):
             f"{get_playlist_prefix(settings)} {block['emoji']} {block['order']} {block['subtitle']}"
         )
         desc = block["description"]
-        playlist = sp.user_playlist_create(
-            user=user_id, name=name, public=False, description=desc
-        )
-        pid = playlist["id"]
+        pid = prepare_playlist(sp, user_id, name, desc, action, existing)
 
         img = generate_cover_image(
             get_playlist_prefix(settings),
@@ -908,10 +948,93 @@ def create_split_from_songs(sp, blocks, all_songs, history=None, settings=None):
 
         found, nf = add_tracks_to_playlist(sp, pid, songs)
         if history:
-            mark_used(history, block["key"], songs)
+            mark_used(history, block["key"], songs, get_playlist_prefix(settings))
         print(f"  ✅ {name} — {found} tracks")
 
     print("\n  🎉 Split playlists created (play each on shuffle).")
+
+
+# ─────────────────────────────────────────────────────────────
+# PLAYLIST DUPLICATE CHECK
+# ─────────────────────────────────────────────────────────────
+
+
+def find_existing_playlists(sp, names):
+    """Search user's playlists for any matching the given names. Returns dict of name→playlist."""
+    found = {}
+    remaining = set(names)
+    offset = 0
+    while remaining:
+        results = sp.current_user_playlists(limit=50, offset=offset)
+        if not results["items"]:
+            break
+        for pl in results["items"]:
+            if pl["name"] in remaining:
+                found[pl["name"]] = pl
+                remaining.discard(pl["name"])
+        offset += 50
+        if offset >= results["total"]:
+            break
+    return found
+
+
+def check_existing_playlists(sp, playlist_names, settings):
+    """Check if playlists already exist. Returns 'create'|'overwrite'|'append'|None (abort)."""
+    existing = find_existing_playlists(sp, playlist_names)
+    if not existing:
+        return "create", {}
+
+    print(f"\n  ⚠️  Found {len(existing)} existing playlist(s) with the same name:")
+    for name in existing:
+        print(f"      • {name}")
+    print()
+
+    choice = menu_select([
+        "📝 Overwrite (clear existing tracks and replace)",
+        "➕ Append (add new tracks to existing playlists)",
+        "🆕 Create new (keep both, creates duplicates)",
+        "🏷️  Change playlist name first",
+    ], back_label="🚫 Cancel")
+
+    if choice is None:
+        return None, {}
+    elif choice == 0:
+        return "overwrite", existing
+    elif choice == 1:
+        return "append", existing
+    elif choice == 2:
+        return "create", {}
+    elif choice == 3:
+        print(f"    {DIM}Use {{name}} to insert the birthday name from .env (e.g., \"{{name}}'s Party\"){RESET}")
+        val = input(f"    New playlist name prefix (current: '{get_playlist_prefix(settings)}'): ").strip()
+        if val:
+            settings["playlist_prefix"] = val
+            save_settings(settings)
+            print(f"  🏷️  Playlist name set to: {get_playlist_prefix(settings)}")
+        return None, {}
+
+
+def prepare_playlist(sp, user_id, name, desc, action, existing):
+    """Create or reuse a playlist based on the action. Returns playlist id."""
+    if action in ("overwrite", "append") and name in existing:
+        pid = existing[name]["id"]
+        if action == "overwrite":
+            sp.playlist_replace_items(pid, [])
+            print(f"  🔄 Cleared: {name}")
+        else:
+            print(f"  ➕ Appending to: {name}")
+        return pid
+    else:
+        # Append date/time suffix if a duplicate already exists on Spotify
+        if name in existing:
+            from datetime import datetime
+            suffix = datetime.now().strftime("%d.%m %H:%M")
+            name = f"{name} ({suffix})"
+        playlist = sp.user_playlist_create(
+            user=user_id, name=name, public=False, description=desc
+        )
+        print(f"  ✅ Created: {name}")
+        return playlist["id"]
 
 
 # ─────────────────────────────────────────────────────────────
@@ -920,11 +1043,17 @@ def create_split_from_songs(sp, blocks, all_songs, history=None, settings=None):
 
 
 def mode_single_playlist(sp, settings):
+    prefix = get_playlist_prefix(settings)
+    names = [f"{prefix} 🎂🦄 Full Night"]
+    action, existing = check_existing_playlists(sp, names, settings)
+    if action is None:
+        return
+
     blocks, all_songs, history = generate_all_songs(sp, settings)
     if not all_songs:
         return
 
-    create_full_from_songs(sp, blocks, all_songs, history, settings=settings)
+    create_full_from_songs(sp, blocks, all_songs, history, settings=settings, action=action, existing=existing)
 
     # Offer to also create split playlists
     if settings.get("offer_split_after_full", True):
@@ -934,11 +1063,18 @@ def mode_single_playlist(sp, settings):
 
 
 def mode_split_playlists(sp, settings):
+    prefix = get_playlist_prefix(settings)
+    blocks_preview = build_blocks_from_schedule(settings)
+    names = [f"{prefix} {b['emoji']} {b['order']} {b['subtitle']}" for b in blocks_preview]
+    action, existing = check_existing_playlists(sp, names, settings)
+    if action is None:
+        return
+
     blocks, all_songs, history = generate_all_songs(sp, settings, extra_for_split=True)
     if not all_songs:
         return
 
-    create_split_from_songs(sp, blocks, all_songs, history, settings=settings)
+    create_split_from_songs(sp, blocks, all_songs, history, settings=settings, action=action, existing=existing)
 
     # Offer to also create a single Full Night playlist
     print()
@@ -947,12 +1083,20 @@ def mode_split_playlists(sp, settings):
 
 
 def mode_both(sp, settings):
+    prefix = get_playlist_prefix(settings)
+    blocks_preview = build_blocks_from_schedule(settings)
+    names = [f"{prefix} 🎂🦄 Full Night"]
+    names += [f"{prefix} {b['emoji']} {b['order']} {b['subtitle']}" for b in blocks_preview]
+    action, existing = check_existing_playlists(sp, names, settings)
+    if action is None:
+        return
+
     blocks, all_songs, history = generate_all_songs(sp, settings)
     if not all_songs:
         return
 
-    create_full_from_songs(sp, blocks, all_songs, history, settings=settings)
-    create_split_from_songs(sp, blocks, all_songs, settings=settings)
+    create_full_from_songs(sp, blocks, all_songs, history, settings=settings, action=action, existing=existing)
+    create_split_from_songs(sp, blocks, all_songs, settings=settings, action=action, existing=existing)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1238,7 +1382,7 @@ def reference_playlist_menu(sp, settings):
 def mood_rules_menu(settings):
     """Set custom mood rules that get injected into Gemini's prompt."""
     current = settings.get("mood_rules", "")
-    styled_header("✨", "Mood Rules")
+    styled_header("🎭", "Mood Rules")
     print(f"    {DIM}These rules guide Gemini when picking songs.{RESET}")
     print(f"    {DIM}Example: 'No heartbreak songs, she just went through a breakup'{RESET}")
     print(f"    {DIM}Example: 'Include lots of 80s music, she loves synthwave'{RESET}")
@@ -1486,7 +1630,7 @@ def settings_menu(settings):
         ref = settings.get("reference_playlist_url", "")
         print(f"      🎧 Reference: {GREEN + 'Set' + RESET if ref else DIM + 'None' + RESET}")
         mood = settings.get("mood_rules", "")
-        print(f"      ✨ Mood rules: {GREEN + 'Set' + RESET if mood else DIM + 'None' + RESET}")
+        print(f"      🎭 Mood rules: {GREEN + 'Set' + RESET if mood else DIM + 'None' + RESET}")
         print(f"      🎤 Master prompt: {DIM}{MASTER_PROMPT_FILE}{RESET}")
         styled_separator()
 
@@ -1567,6 +1711,7 @@ def settings_menu(settings):
             save_settings(settings)
             print(f"  🔗 Split offer {'enabled' if settings['offer_split_after_full'] else 'disabled'}.")
         elif choice == 7:
+            print(f"    {DIM}Use {{name}} to insert the birthday name from .env (e.g., \"{{name}}'s Party\"){RESET}")
             val = input(f"    Playlist name prefix (empty = default '{DEFAULT_PLAYLIST_PREFIX}'): ").strip()
             settings["playlist_prefix"] = val
             save_settings(settings)
@@ -1576,9 +1721,10 @@ def settings_menu(settings):
         elif choice == 9:
             master_prompt_menu()
         elif choice == 10:
-            if menu_confirm("Clear all song history?"):
-                clear_history()
-                print("  ✅ Song history cleared.")
+            current_name = get_playlist_prefix(settings)
+            if menu_confirm(f"Clear song history for \"{current_name}\"?"):
+                clear_history(current_name)
+                print(f"  🧹 History cleared for \"{current_name}\".")
         elif choice == 11:
             for k, v in DEFAULT_SETTINGS.items():
                 settings[k] = json.loads(json.dumps(v))
@@ -1588,10 +1734,10 @@ def settings_menu(settings):
             break
 
 
-def history_menu(settings):
-    history = load_history()
+def _show_history_for(playlist_name, settings):
+    """Display song history bars for a specific playlist name."""
+    history = load_history(playlist_name)
     blocks = build_blocks_from_schedule(settings)
-    styled_header("📀", "Song History")
 
     total = 0
     counts = []
@@ -1607,14 +1753,57 @@ def history_menu(settings):
         print(f"    {b['emoji']} {b['subtitle']:14s}  {bar}  {used} songs")
 
     print(f"\n    {BOLD}Total songs remembered:{RESET} {total}")
-    print(f"    {DIM}Gemini will avoid these on next generation{RESET}")
+    return total
+
+
+def history_menu(settings):
+    styled_header("📀", "Song History")
+
+    names = get_history_names()
+    current = get_playlist_prefix(settings)
+
+    if not names:
+        print(f"    {DIM}No song history yet.{RESET}")
+        styled_separator()
+        return
+
+    # Show current playlist's history
+    print(f"    {BOLD}Current: {current}{RESET}")
+    if current in names:
+        _show_history_for(current, settings)
+    else:
+        print(f"    {DIM}No history for this playlist name.{RESET}")
+
+    if len(names) > 1:
+        print(f"\n    {DIM}Other playlists with history: {', '.join(n for n in names if n != current)}{RESET}")
+
+    print(f"    {DIM}Gemini will avoid remembered songs on next generation{RESET}")
     styled_separator()
 
-    options = ["🗑️  Clear all history (fresh start)"]
+    options = [f"🧹 Clear history for \"{current}\""]
+    if len(names) > 1:
+        options.append("📀 View other playlist history")
+        options.append("💥 Clear ALL history (all playlists)")
     choice = menu_select(options)
     if choice == 0:
-        if menu_confirm("Clear all song history?"):
+        if menu_confirm(f"Clear song history for \"{current}\"?"):
+            clear_history(current)
+            print(f"  🧹 History cleared for \"{current}\".")
+    elif choice == 1 and len(names) > 1:
+        other_names = [n for n in names if n != current]
+        print()
+        pick = menu_select(other_names)
+        if pick is not None:
+            print(f"\n    {BOLD}{other_names[pick]}{RESET}")
+            _show_history_for(other_names[pick], settings)
+            styled_separator()
+            if menu_confirm(f"Clear history for \"{other_names[pick]}\"?"):
+                clear_history(other_names[pick])
+                print(f"  🧹 History cleared for \"{other_names[pick]}\".")
+    elif choice == 2 and len(names) > 1:
+        if menu_confirm("Clear ALL song history for every playlist?"):
             clear_history()
+            print("  💥 All history cleared.")
 
 
 def main_menu(settings):
@@ -1650,7 +1839,7 @@ def main_menu(settings):
         # Configure
         "⚙️  Settings & schedule",
         "🎧 Reference playlist",
-        "✨ Mood rules",
+        "🎭 Mood rules",
         "📀 Song history",
         "🤖 Choose Gemini model",
         "🎤 Master prompt",

@@ -17,6 +17,14 @@ You customize the schedule, the block types, and how many songs per hour. Then G
 - **Split Night** — separate playlists per vibe. Shuffle each, switch when the energy shifts.
 - **Both** — get both at once, same songs.
 
+**Other things it does:**
+- Shuffles songs within each block so artists aren't clumped together
+- Remembers songs per playlist name — regenerate without repeats, or start fresh
+- Detects existing playlists and lets you overwrite, append, or rename
+- Custom playlist naming with `{name}` templates (pulls from your `.env`)
+- Blocked artists list that overrides everything
+- Custom cover art per block type with auto-generated gradients
+
 ## Quick start
 
 ```bash
