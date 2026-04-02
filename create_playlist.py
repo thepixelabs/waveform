@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-BirthDJ — AI-powered birthday party playlist generator for Spotify.
+Waveform — AI-powered birthday party playlist generator for Spotify.
 Songs curated dynamically by Gemini AI based on your taste and vibe.
 """
 
@@ -1811,7 +1811,7 @@ def main_menu(settings):
     total_tracks = sum(b["track_count"] for b in blocks)
     total_hours = sum(b["duration_hours"] for b in blocks)
 
-    styled_header("🎂", f"{BIRTHDAY_NAME}'s BirthDJ Playlist")
+    styled_header("🎂", f"{BIRTHDAY_NAME}'s Waveform Playlist")
 
     model_name = settings.get("gemini_model", DEFAULT_GEMINI_MODEL)
     if HAS_GEMINI and GEMINI_API_KEY:

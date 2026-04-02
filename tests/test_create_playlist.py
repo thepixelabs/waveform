@@ -1,4 +1,4 @@
-"""Component and functional tests for BirthDJ."""
+"""Component and functional tests for Waveform."""
 
 import json
 import os

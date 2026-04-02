@@ -1,12 +1,12 @@
-# 🎂🎧🪩 BirthDJ
+# 🎂🎧🪩 Waveform
 
 **AI-powered birthday party playlists that actually slap.**
 
-Someone's birthday is coming up and you need 8+ hours of music that flows from "people arriving with wine" to "dancing on the couch" to "happy-crying to Bill Withers at 5 AM." BirthDJ handles it — tell it who the birthday person is, link a playlist that captures their taste, and let Gemini AI curate the whole night. The result lands in your Spotify, with custom cover art and everything.
+Someone's birthday is coming up and you need 8+ hours of music that flows from "people arriving with wine" to "dancing on the couch" to "happy-crying to Bill Withers at 5 AM." Waveform handles it — tell it who the birthday person is, link a playlist that captures their taste, and let Gemini AI curate the whole night. The result lands in your Spotify, with custom cover art and everything.
 
 ## How it works
 
-BirthDJ structures a party into chapters, each with its own mood:
+Waveform structures a party into chapters, each with its own mood:
 
 🍷 **Arrival** → 🎤 **Singalongs** → 🪩 **Dance Floor** → 🌙 **Late Groove** → 🌅 **Sunrise**
 
@@ -28,8 +28,8 @@ You customize the schedule, the block types, and how many songs per hour. Then G
 ## Quick start
 
 ```bash
-git clone https://github.com/thepixelabs/birthdj.git
-cd birthdj
+git clone https://github.com/thepixelabs/waveform.git
+cd waveform
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -69,7 +69,7 @@ First launch opens a browser for Spotify login and auto-creates your config file
 
 ## Customization
 
-BirthDJ has three layers you can tweak, from most to least powerful:
+Waveform has three layers you can tweak, from most to least powerful:
 
 **`master_prompt.md`** — The main instruction file. This is where you describe the party, list your favorite artists per block type, set rules like "no breakup songs", and define the overall music direction. It's the primary driver of what Gemini picks. Edit it to completely change the vibe.
 
@@ -84,7 +84,7 @@ Both `master_prompt.md` and `blocked_artists.txt` are gitignored. The repo ships
 ## Project structure
 
 ```
-birthdj/
+waveform/
 ├── create_playlist.py          # The whole app
 ├── master_prompt.md.example    # AI prompt template (customize → master_prompt.md)
 ├── blocked_artists.txt.example # Blocklist template (customize → blocked_artists.txt)

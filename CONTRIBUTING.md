@@ -1,4 +1,4 @@
-# Contributing to BirthDJ
+# Contributing to Waveform
 
 Thanks for your interest in contributing! This guide covers everything you need to get started.
 
@@ -14,8 +14,8 @@ Thanks for your interest in contributing! This guide covers everything you need 
 
 ```bash
 # Clone and enter the repo
-git clone https://github.com/thepixelabs/birthdj.git
-cd birthdj
+git clone https://github.com/thepixelabs/waveform.git
+cd waveform
 
 # Create a virtual environment
 python3 -m venv venv
@@ -104,7 +104,7 @@ If you're planning something larger (new features, architectural changes), pleas
 The app is currently a single file (`create_playlist.py`). If your contribution involves significant new functionality, discuss in an issue whether it warrants splitting into modules.
 
 ```
-birthdj/
+waveform/
 ├── create_playlist.py          # Main application
 ├── tests/                      # Test suite
 │   ├── __init__.py
