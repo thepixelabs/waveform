@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BirthDJ — AI birthday playlists that actually slap</title>
+  <meta name="description" content="Tell it who the birthday person is, link a Spotify playlist, and Gemini AI curates the whole night — from wine o'clock to sunrise. Lands in your Spotify with custom cover art." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─── RESET & TOKENS ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --font-display: 'Space Grotesk', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+
+      /* Block colours (exact from source) */
+      --chill:     #78285a;
+      --singalong: #dc5028;
+      --dance:     #e61e78;
+      --groove:    #1e32a0;
+      --sunrise:   #328c8c;
+
+      /* Neon accents */
+      --neon-pink:   #ff2d78;
+      --neon-purple: #b44fff;
+      --neon-yellow: #ffe23f;
+      --neon-cyan:   #3ff0e8;
+      --neon-orange: #ff7328;
+
+      --bg:        #09080f;
+      --surface:   #130f1e;
+      --surface-2: #1c1630;
+      --border:    rgba(255,255,255,0.08);
+      --text:      #f5f0ff;
+      --text-muted:#9988bb;
+
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-xl: 36px;
+
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ─── NOISE TEXTURE OVERLAY ──────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    }
+
+    /* ─── UTILITY ─────────────────────────────────────────────── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* ─── NAV ─────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      background: rgba(9, 8, 15, 0.7);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.3s;
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-logo-icon {
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 20px;
+      background: var(--neon-pink);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+    }
+
+    .nav-cta:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 24px rgba(255, 45, 120, 0.5);
+    }
+
+    /* ─── HERO ────────────────────────────────────────────────── */
+    .hero {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Animated gradient orbs */
+    .hero-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    .hero-orb-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(228,30,120,0.25) 0%, transparent 70%);
+      top: -100px; left: -100px;
+      animation-delay: 0s;
+    }
+
+    .hero-orb-2 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(180,79,255,0.2) 0%, transparent 70%);
+      top: 10%; right: -80px;
+      animation-delay: -3s;
+    }
+
+    .hero-orb-3 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(63,240,232,0.15) 0%, transparent 70%);
+      bottom: 0; left: 30%;
+      animation-delay: -5s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%       { transform: translate(30px, -40px) scale(1.05); }
+      66%       { transform: translate(-20px, 20px) scale(0.95); }
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(255, 45, 120, 0.12);
+      border: 1px solid rgba(255, 45, 120, 0.3);
+      border-radius: 100px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #ff7fad;
+      margin-bottom: 28px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .hero-badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--neon-pink);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.6); }
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 9vw, 7rem);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -3px;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-title-line1 { display: block; color: var(--text); }
+
+    .hero-title-line2 {
+      display: block;
+      background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 50%, var(--neon-cyan) 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 0% center; }
+      100% { background-position: 200% center; }
+    }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 580px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-sub strong { color: var(--text); font-weight: 600; }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));
+      color: #fff;
+      text-decoration: none;
+      border-radius: 100px;
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+      box-shadow: 0 4px 32px rgba(255, 45, 120, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: scale(1.06) translateY(-2px);
+      box-shadow: 0 8px 48px rgba(255, 45, 120, 0.55);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: transparent;
+      color: var(--text);
+      text-decoration: none;
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.2s var(--ease-spring);
+    }
+
+    .btn-secondary:hover {
+      border-color: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.05);
+      transform: scale(1.03);
+    }
+
+    /* ─── NIGHT ARC DEMO ──────────────────────────────────────── */
+    .arc-section {
+      padding: 100px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 1.0625rem;
+      max-width: 500px;
+      line-height: 1.7;
+    }
+
+    .arc-wrapper {
+      margin-top: 60px;
+      position: relative;
+    }
+
+    /* The continuous gradient timeline bar */
+    .arc-bar {
+      height: 10px;
+      border-radius: 100px;
+      background: linear-gradient(to right,
+        #78285a 0%,
+        #dc5028 25%,
+        #e61e78 50%,
+        #1e32a0 75%,
+        #328c8c 100%
+      );
+      margin-bottom: 0;
+      position: relative;
+      box-shadow: 0 0 40px rgba(230, 30, 120, 0.4);
+    }
+
+    .arc-blocks {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .arc-block {
+      padding: 20px 16px;
+      border-radius: var(--radius-md);
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.25s var(--ease-spring), box-shadow 0.25s;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .arc-block::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.25s;
+      border-radius: inherit;
+    }
+
+    .arc-block:hover { transform: translateY(-6px) scale(1.02); }
+    .arc-block:hover::before { opacity: 1; }
+
+    .arc-block:focus-visible {
+      outline: 2px solid var(--neon-pink);
+      outline-offset: 3px;
+    }
+
+    .arc-block-chill     { background: linear-gradient(145deg, #78285a, #3c0f32); }
+    .arc-block-chill::before { background: linear-gradient(145deg, rgba(120,40,90,0.5), rgba(60,15,50,0.5)); box-shadow: inset 0 0 0 1px rgba(120,40,90,0.5); }
+
+    .arc-block-singalong { background: linear-gradient(145deg, #dc5028, #a02814); }
+    .arc-block-singalong::before { background: linear-gradient(145deg, rgba(220,80,40,0.5), rgba(160,40,20,0.5)); }
+
+    .arc-block-dance     { background: linear-gradient(145deg, #e61e78, #8c0a50); }
+    .arc-block-dance::before { background: linear-gradient(145deg, rgba(230,30,120,0.5), rgba(140,10,80,0.5)); }
+
+    .arc-block-groove    { background: linear-gradient(145deg, #1e32a0, #0f145a); }
+    .arc-block-groove::before { background: linear-gradient(145deg, rgba(30,50,160,0.5), rgba(15,20,90,0.5)); }
+
+    .arc-block-sunrise   { background: linear-gradient(145deg, #328c8c, #164646); }
+    .arc-block-sunrise::before { background: linear-gradient(145deg, rgba(50,140,140,0.5), rgba(22,70,70,0.5)); }
+
+    .arc-block-emoji {
+      font-size: 2rem;
+      line-height: 1;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .arc-block-time {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      opacity: 0.65;
+      margin-bottom: 4px;
+    }
+
+    .arc-block-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.9375rem;
+      margin-bottom: 6px;
+      line-height: 1.2;
+    }
+
+    .arc-block-desc {
+      font-size: 0.75rem;
+      opacity: 0.65;
+      line-height: 1.4;
+    }
+
+    .arc-block-tracks {
+      margin-top: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 100px;
+    }
+
+    /* ─── FLOATING SONG TICKER ──────────────────────────────────── */
+    .ticker-wrapper {
+      margin-top: 48px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .ticker-wrapper::before,
+    .ticker-wrapper::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 80px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .ticker-wrapper::before {
+      left: 0;
+      background: linear-gradient(to right, var(--bg), transparent);
+    }
+
+    .ticker-wrapper::after {
+      right: 0;
+      background: linear-gradient(to left, var(--bg), transparent);
+    }
+
+    .ticker-track {
+      display: flex;
+      gap: 12px;
+      width: max-content;
+      animation: ticker 30s linear infinite;
+    }
+
+    .ticker-track:hover { animation-play-state: paused; }
+
+    @keyframes ticker {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .ticker-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      white-space: nowrap;
+      font-size: 0.8125rem;
+      font-weight: 500;
+    }
+
+    .ticker-pill-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ─── HOW IT WORKS ────────────────────────────────────────── */
+    .how-section {
+      padding: 100px 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 32px;
+      margin-top: 56px;
+    }
+
+    .step {
+      position: relative;
+    }
+
+    .step-number {
+      width: 44px; height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1rem;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+
+    .step:nth-child(1) .step-number { background: rgba(255,45,120,0.15); color: var(--neon-pink); border: 1px solid rgba(255,45,120,0.3); }
+    .step:nth-child(2) .step-number { background: rgba(180,79,255,0.15); color: var(--neon-purple); border: 1px solid rgba(180,79,255,0.3); }
+    .step:nth-child(3) .step-number { background: rgba(255,227,63,0.15); color: var(--neon-yellow); border: 1px solid rgba(255,227,63,0.3); }
+    .step:nth-child(4) .step-number { background: rgba(63,240,232,0.15); color: var(--neon-cyan); border: 1px solid rgba(63,240,232,0.3); }
+
+    .step-icon {
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .step-title {
+      font-family: var(--font-display);
+      font-size: 1.0625rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+
+    .step-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ─── INTERACTIVE DEMO ────────────────────────────────────── */
+    .demo-section {
+      padding: 100px 0;
+    }
+
+    .demo-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      margin-top: 56px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .demo-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(to right, var(--neon-pink), var(--neon-purple), var(--neon-cyan));
+    }
+
+    .demo-terminal-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .terminal-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+    }
+
+    .terminal-dot-red  { background: #ff5f57; }
+    .terminal-dot-yel  { background: #febc2e; }
+    .terminal-dot-grn  { background: #28c840; }
+
+    .terminal-title {
+      margin-left: 8px;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    .demo-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .demo-left {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .demo-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .demo-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .demo-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--text);
+      font-size: 0.875rem;
+      font-family: var(--font-body);
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    .demo-input:focus {
+      border-color: var(--neon-pink);
+      box-shadow: 0 0 0 3px rgba(255, 45, 120, 0.15);
+    }
+
+    .demo-select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--text);
+      font-size: 0.875rem;
+      font-family: var(--font-body);
+      width: 100%;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239988bb' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+      transition: border-color 0.2s;
+    }
+
+    .demo-select:focus {
+      border-color: var(--neon-pink);
+      outline: none;
+    }
+
+    .demo-generate-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 0.9375rem;
+      cursor: pointer;
+      transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+      margin-top: 4px;
+      box-shadow: 0 4px 24px rgba(255, 45, 120, 0.35);
+      font-family: var(--font-body);
+    }
+
+    .demo-generate-btn:hover {
+      transform: scale(1.03) translateY(-1px);
+      box-shadow: 0 8px 36px rgba(255, 45, 120, 0.5);
+    }
+
+    .demo-generate-btn:focus-visible {
+      outline: 2px solid var(--neon-pink);
+      outline-offset: 3px;
+    }
+
+    .demo-generate-btn:active { transform: scale(0.98); }
+
+    .demo-right {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .demo-output-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .demo-output {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-size: 0.8125rem;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      line-height: 1.8;
+      color: var(--text-muted);
+      overflow-y: auto;
+      min-height: 220px;
+      position: relative;
+    }
+
+    .demo-output-line {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      opacity: 0;
+      animation: fade-in-up 0.4s var(--ease-out) forwards;
+    }
+
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .output-prefix {
+      flex-shrink: 0;
+    }
+
+    .output-prefix-pink   { color: var(--neon-pink); }
+    .output-prefix-purple { color: var(--neon-purple); }
+    .output-prefix-cyan   { color: var(--neon-cyan); }
+    .output-prefix-yellow { color: var(--neon-yellow); }
+    .output-prefix-green  { color: #4ade80; }
+    .output-prefix-orange { color: var(--neon-orange); }
+
+    .output-text { color: var(--text); }
+
+    .demo-cursor {
+      display: inline-block;
+      width: 8px; height: 14px;
+      background: var(--neon-pink);
+      animation: blink 1s step-end infinite;
+      vertical-align: middle;
+      border-radius: 1px;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    .demo-status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    /* ─── FEATURES ────────────────────────────────────────────── */
+    .features-section {
+      padding: 100px 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 56px;
+    }
+
+    .feature-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      transition: border-color 0.2s, transform 0.25s var(--ease-spring);
+    }
+
+    .feature-card:hover {
+      border-color: rgba(255,255,255,0.14);
+      transform: translateY(-4px);
+    }
+
+    .feature-icon {
+      font-size: 1.75rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .feature-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.2px;
+    }
+
+    .feature-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ─── PLAYLIST MODE TOGGLE ────────────────────────────────── */
+    .modes-section {
+      padding: 100px 0;
+    }
+
+    .modes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 56px;
+    }
+
+    .mode-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s var(--ease-spring), border-color 0.2s;
+      cursor: pointer;
+    }
+
+    .mode-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    .mode-card.featured {
+      border-color: rgba(255,45,120,0.4);
+      background: rgba(255,45,120,0.05);
+    }
+
+    .mode-card.featured::before {
+      content: 'Most Popular';
+      position: absolute;
+      top: 12px; right: 12px;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--neon-pink);
+      background: rgba(255,45,120,0.12);
+      padding: 3px 10px;
+      border-radius: 100px;
+      border: 1px solid rgba(255,45,120,0.25);
+    }
+
+    .mode-emoji {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .mode-name {
+      font-family: var(--font-display);
+      font-size: 1.125rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      letter-spacing: -0.3px;
+    }
+
+    .mode-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ─── CODE SNIPPET ────────────────────────────────────────── */
+    .quickstart-section {
+      padding: 100px 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .code-block {
+      background: #0a0a12;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-top: 40px;
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .code-header-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .code-header-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .code-copy-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 12px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      font-family: var(--font-body);
+    }
+
+    .code-copy-btn:hover {
+      border-color: rgba(255,255,255,0.2);
+      color: var(--text);
+    }
+
+    pre {
+      padding: 28px 24px;
+      overflow-x: auto;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.875rem;
+      line-height: 1.8;
+    }
+
+    .token-comment { color: #5a5270; }
+    .token-command { color: var(--neon-cyan); }
+    .token-string  { color: #ffe47a; }
+    .token-key     { color: var(--neon-pink); }
+    .token-value   { color: var(--neon-purple); }
+
+    /* ─── FOOTER ──────────────────────────────────────────────── */
+    footer {
+      padding: 60px 0 40px;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-logo {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .footer-tagline {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 40px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text); }
+
+    .footer-meta {
+      font-size: 0.8125rem;
+      color: #4a3d66;
+    }
+
+    .footer-meta a {
+      color: #6a5d86;
+      text-decoration: none;
+    }
+
+    .footer-meta a:hover { color: var(--text-muted); }
+
+    /* ─── DISCO BALL ──────────────────────────────────────────── */
+    .disco-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 48px;
+      perspective: 400px;
+    }
+
+    .disco-ball {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%,
+        #ffffff 0%,
+        #d4c8ff 15%,
+        #b44fff 35%,
+        #ff2d78 55%,
+        #1e32a0 75%,
+        #0a0818 100%
+      );
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.1),
+        0 0 40px rgba(180,79,255,0.5),
+        0 0 80px rgba(255,45,120,0.3);
+      animation: disco-spin 3s linear infinite, disco-bob 4s ease-in-out infinite;
+      position: relative;
+    }
+
+    .disco-ball::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border-radius: 50%;
+      background: repeating-conic-gradient(
+        rgba(255,255,255,0.15) 0deg 10deg,
+        transparent 10deg 20deg
+      );
+      animation: disco-spin 1.5s linear infinite reverse;
+    }
+
+    @keyframes disco-spin {
+      from { transform: rotateY(0deg); }
+      to   { transform: rotateY(360deg); }
+    }
+
+    @keyframes disco-bob {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-8px); }
+    }
+
+    /* ─── ANIMATIONS ON SCROLL ─────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    /* ─── RESPONSIVE ──────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .arc-blocks {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .demo-inner {
+        grid-template-columns: 1fr;
+      }
+
+      .modes-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .arc-blocks {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .arc-block-chill { grid-column: 1 / -1; }
+
+      .hero-title { letter-spacing: -2px; }
+
+      nav { padding: 12px 16px; }
+
+      .nav-cta span { display: none; }
+
+      .steps-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      pre { font-size: 0.75rem; }
+    }
+
+    /* ─── LIGHT RAYS ─────────────────────────────────────────── */
+    .light-rays {
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 800px; height: 600px;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .ray {
+      position: absolute;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      transform-origin: top center;
+      opacity: 0;
+      animation: ray-flash 6s ease-in-out infinite;
+    }
+
+    .ray:nth-child(1) { left: 40%;  background: linear-gradient(to bottom, rgba(255,45,120,0.6), transparent);  animation-delay: 0s; }
+    .ray:nth-child(2) { left: 45%;  background: linear-gradient(to bottom, rgba(180,79,255,0.6), transparent);  animation-delay: 0.8s; }
+    .ray:nth-child(3) { left: 50%;  background: linear-gradient(to bottom, rgba(63,240,232,0.6), transparent);  animation-delay: 1.6s; }
+    .ray:nth-child(4) { left: 55%;  background: linear-gradient(to bottom, rgba(255,227,63,0.6), transparent);  animation-delay: 2.4s; }
+    .ray:nth-child(5) { left: 60%;  background: linear-gradient(to bottom, rgba(255,45,120,0.6), transparent);  animation-delay: 3.2s; }
+
+    @keyframes ray-flash {
+      0%, 100% { opacity: 0; transform: scaleX(1); }
+      10%, 20% { opacity: 1; transform: scaleX(3); }
+      30%       { opacity: 0; transform: scaleX(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── NAV ──────────────────────────────────────────────── -->
+  <nav aria-label="Site navigation">
+    <a href="#" class="nav-logo" aria-label="BirthDJ home">
+      <span class="nav-logo-icon" aria-hidden="true">🪩</span>
+      BirthDJ
+    </a>
+    <a href="https://github.com/thepixelabs/birthdj" class="nav-cta" rel="noopener noreferrer" target="_blank" aria-label="Get BirthDJ on GitHub">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      <span>Get it on GitHub</span>
+    </a>
+  </nav>
+
+  <!-- ─── HERO ──────────────────────────────────────────────── -->
+  <section class="hero" aria-label="Hero">
+    <div class="hero-orb hero-orb-1" aria-hidden="true"></div>
+    <div class="hero-orb hero-orb-2" aria-hidden="true"></div>
+    <div class="hero-orb hero-orb-3" aria-hidden="true"></div>
+
+    <div class="light-rays" aria-hidden="true">
+      <div class="ray"></div>
+      <div class="ray"></div>
+      <div class="ray"></div>
+      <div class="ray"></div>
+      <div class="ray"></div>
+    </div>
+
+    <div class="hero-badge" aria-label="Powered by Gemini AI and Spotify">
+      <span class="hero-badge-dot" aria-hidden="true"></span>
+      Gemini AI + Spotify
+    </div>
+
+    <h1 class="hero-title">
+      <span class="hero-title-line1">Birthday</span>
+      <span class="hero-title-line2">playlists</span>
+      <span class="hero-title-line1">that slap.</span>
+    </h1>
+
+    <p class="hero-sub">
+      Tell it who the birthday person is, link a Spotify playlist,
+      and <strong>Gemini AI curates the whole night</strong> — from wine
+      o'clock to sunrise. Lands in your Spotify with custom cover art.
+    </p>
+
+    <div class="hero-actions">
+      <a href="https://github.com/thepixelabs/birthdj" class="btn-primary" target="_blank" rel="noopener noreferrer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        Star on GitHub
+      </a>
+      <a href="#how-it-works" class="btn-secondary">
+        See how it works
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- ─── NIGHT ARC ─────────────────────────────────────────── -->
+  <section class="arc-section" aria-labelledby="arc-heading">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-label">The night arc</div>
+        <h2 class="section-title" id="arc-heading">One prompt. Eight hours<br>of perfectly sequenced music.</h2>
+        <p class="section-desc">BirthDJ breaks the night into chapters. Each block has its own mood, its own energy, its own Spotify cover art — and they flow seamlessly into each other.</p>
+      </div>
+
+      <div class="arc-wrapper reveal reveal-delay-1">
+        <div class="arc-bar" role="presentation" aria-hidden="true"></div>
+        <div class="arc-blocks" role="list" aria-label="Party blocks">
+
+          <article class="arc-block arc-block-chill" role="listitem" tabindex="0" aria-label="Chill block: 8 PM to 10 PM, Wine and Chill">
+            <span class="arc-block-emoji" aria-hidden="true">🍷</span>
+            <div class="arc-block-time">8:00 PM – 10:00 PM</div>
+            <div class="arc-block-name">Wine &amp; Chill</div>
+            <div class="arc-block-desc">Warm, smooth, inviting vibes</div>
+            <div class="arc-block-tracks" aria-label="32 tracks">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/></svg>
+              32 tracks
+            </div>
+          </article>
+
+          <article class="arc-block arc-block-singalong" role="listitem" tabindex="0" aria-label="Singalong block: 10 PM to midnight, Singalongs">
+            <span class="arc-block-emoji" aria-hidden="true">🎤</span>
+            <div class="arc-block-time">10:00 PM – 12:00 AM</div>
+            <div class="arc-block-name">Singalongs</div>
+            <div class="arc-block-desc">Anthems everyone knows the words to</div>
+            <div class="arc-block-tracks" aria-label="35 tracks">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/></svg>
+              35 tracks
+            </div>
+          </article>
+
+          <article class="arc-block arc-block-dance" role="listitem" tabindex="0" aria-label="Dance block: midnight to 2 AM, Dance Floor">
+            <span class="arc-block-emoji" aria-hidden="true">🪩</span>
+            <div class="arc-block-time">12:00 AM – 2:00 AM</div>
+            <div class="arc-block-name">Dance Floor</div>
+            <div class="arc-block-desc">Peak energy, full send, living room club</div>
+            <div class="arc-block-tracks" aria-label="40 tracks">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/></svg>
+              40 tracks
+            </div>
+          </article>
+
+          <article class="arc-block arc-block-groove" role="listitem" tabindex="0" aria-label="Groove block: 2 AM to 4 AM, Late Groove">
+            <span class="arc-block-emoji" aria-hidden="true">🌙</span>
+            <div class="arc-block-time">2:00 AM – 4:00 AM</div>
+            <div class="arc-block-name">Late Groove</div>
+            <div class="arc-block-desc">Groovy afterparty, deep talks, rhythmic</div>
+            <div class="arc-block-tracks" aria-label="35 tracks">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/></svg>
+              35 tracks
+            </div>
+          </article>
+
+          <article class="arc-block arc-block-sunrise" role="listitem" tabindex="0" aria-label="Sunrise block: 4 AM to 5 AM, Sunrise">
+            <span class="arc-block-emoji" aria-hidden="true">🌅</span>
+            <div class="arc-block-time">4:00 AM – 5:00 AM</div>
+            <div class="arc-block-name">Sunrise</div>
+            <div class="arc-block-desc">Wind down, peaceful, happy exhaustion</div>
+            <div class="arc-block-tracks" aria-label="18 tracks">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/></svg>
+              18 tracks
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- Song Ticker -->
+      <div class="ticker-wrapper reveal reveal-delay-2" aria-label="Sample songs across all blocks" role="marquee" aria-live="off">
+        <div class="ticker-track" aria-hidden="true">
+          <!-- Duplicated for seamless loop -->
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#78285a"></span> Norah Jones — Come Away With Me</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#dc5028"></span> Queen — Don't Stop Me Now</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#e61e78"></span> Dua Lipa — Levitating</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#1e32a0"></span> Daft Punk — Get Lucky</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#328c8c"></span> Bill Withers — Lovely Day</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#78285a"></span> Sade — Smooth Operator</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#dc5028"></span> ABBA — Dancing Queen</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#e61e78"></span> Calvin Harris — Feel So Close</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#1e32a0"></span> Jamiroquai — Virtual Insanity</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#328c8c"></span> Bon Iver — Skinny Love</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#78285a"></span> Frank Ocean — Thinkin Bout You</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#dc5028"></span> Beyoncé — Love On Top</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#e61e78"></span> The Weeknd — Blinding Lights</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#1e32a0"></span> Disclosure — Latch</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#328c8c"></span> Jack Johnson — Better Together</span>
+          <!-- Duplicate -->
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#78285a"></span> Norah Jones — Come Away With Me</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#dc5028"></span> Queen — Don't Stop Me Now</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#e61e78"></span> Dua Lipa — Levitating</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#1e32a0"></span> Daft Punk — Get Lucky</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#328c8c"></span> Bill Withers — Lovely Day</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#78285a"></span> Sade — Smooth Operator</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#dc5028"></span> ABBA — Dancing Queen</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#e61e78"></span> Calvin Harris — Feel So Close</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#1e32a0"></span> Jamiroquai — Virtual Insanity</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#328c8c"></span> Bon Iver — Skinny Love</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#78285a"></span> Frank Ocean — Thinkin Bout You</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#dc5028"></span> Beyoncé — Love On Top</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#e61e78"></span> The Weeknd — Blinding Lights</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#1e32a0"></span> Disclosure — Latch</span>
+          <span class="ticker-pill"><span class="ticker-pill-dot" style="background:#328c8c"></span> Jack Johnson — Better Together</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── HOW IT WORKS ──────────────────────────────────────── -->
+  <section class="how-section" id="how-it-works" aria-labelledby="how-heading">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-label">How it works</div>
+        <h2 class="section-title" id="how-heading">Set up once.<br>Generate endlessly.</h2>
+        <p class="section-desc">Four steps from zero to Spotify. No web app, no subscription, no data sold.</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step reveal reveal-delay-1">
+          <div class="step-number" aria-hidden="true">1</div>
+          <span class="step-icon" aria-hidden="true">🔑</span>
+          <h3 class="step-title">Add your keys</h3>
+          <p class="step-desc">Drop your Spotify client ID and Gemini API key into a <code>.env</code> file. Both have generous free tiers. First launch auto-creates all config files from included templates.</p>
+        </div>
+
+        <div class="step reveal reveal-delay-2">
+          <div class="step-number" aria-hidden="true">2</div>
+          <span class="step-icon" aria-hidden="true">✍️</span>
+          <h3 class="step-title">Write the brief</h3>
+          <p class="step-desc">Edit <code>master_prompt.md</code> — describe the party, list the artists your crowd loves, set rules like "no breakup songs." This is the AI's main instruction file.</p>
+        </div>
+
+        <div class="step reveal reveal-delay-3">
+          <div class="step-number" aria-hidden="true">3</div>
+          <span class="step-icon" aria-hidden="true">🎵</span>
+          <h3 class="step-title">Link a reference playlist</h3>
+          <p class="step-desc">Optional but powerful. Link any Spotify playlist and Gemini reads the actual song list to calibrate taste — genre ratios, energy level, artist choices. The prompt sets direction, the playlist calibrates sound.</p>
+        </div>
+
+        <div class="step reveal reveal-delay-4">
+          <div class="step-number" aria-hidden="true">4</div>
+          <span class="step-icon" aria-hidden="true">🚀</span>
+          <h3 class="step-title">Run and party</h3>
+          <p class="step-desc">Run <code>python create_playlist.py</code>. Choose Full Night, Split Night, or Both. The playlists land in your Spotify account with custom generated cover art for each block.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── INTERACTIVE DEMO ───────────────────────────────────── -->
+  <section class="demo-section" aria-labelledby="demo-heading">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-label">Live demo</div>
+        <h2 class="section-title" id="demo-heading">Watch the magic<br>happen in real time.</h2>
+        <p class="section-desc">This simulates what running BirthDJ actually looks like in your terminal. Hit Generate to see the night come together.</p>
+      </div>
+
+      <div class="demo-card reveal reveal-delay-1" role="region" aria-label="Interactive terminal demo">
+        <div class="demo-terminal-header">
+          <span class="terminal-dot terminal-dot-red" aria-hidden="true"></span>
+          <span class="terminal-dot terminal-dot-yel" aria-hidden="true"></span>
+          <span class="terminal-dot terminal-dot-grn" aria-hidden="true"></span>
+          <span class="terminal-title">birthdj — python create_playlist.py</span>
+        </div>
+
+        <div class="demo-inner">
+          <div class="demo-left">
+            <div class="demo-input-group">
+              <label class="demo-label" for="demo-name">Birthday person's name</label>
+              <input class="demo-input" id="demo-name" type="text" value="Sarah" maxlength="30" aria-describedby="demo-name-hint" />
+              <span id="demo-name-hint" class="sr-only">Enter the birthday person's first name</span>
+            </div>
+
+            <div class="demo-input-group">
+              <label class="demo-label" for="demo-vibe">Party vibe</label>
+              <select class="demo-select" id="demo-vibe" aria-describedby="demo-vibe-hint">
+                <option value="house">House party with close friends</option>
+                <option value="rooftop">Rooftop cocktail party</option>
+                <option value="club">Club night out</option>
+                <option value="beach">Beach bonfire</option>
+              </select>
+              <span id="demo-vibe-hint" class="sr-only">Select the type of party</span>
+            </div>
+
+            <div class="demo-input-group">
+              <label class="demo-label" for="demo-mode">Playlist mode</label>
+              <select class="demo-select" id="demo-mode" aria-describedby="demo-mode-hint">
+                <option value="full">Full Night — one big playlist</option>
+                <option value="split">Split Night — per-vibe playlists</option>
+                <option value="both">Both — full + split</option>
+              </select>
+              <span id="demo-mode-hint" class="sr-only">Select how to organize the playlists</span>
+            </div>
+
+            <button class="demo-generate-btn" id="demo-btn" aria-label="Generate demo playlist" aria-live="polite">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Generate playlist
+            </button>
+          </div>
+
+          <div class="demo-right">
+            <div class="demo-output-label" id="output-label">Terminal output</div>
+            <div class="demo-output" id="demo-output" role="log" aria-live="polite" aria-atomic="false" aria-labelledby="output-label">
+              <div class="demo-output-line" style="opacity:1; animation:none;">
+                <span class="output-prefix output-prefix-purple">✦</span>
+                <span class="output-text">BirthDJ ready. Hit Generate to begin.</span>
+              </div>
+              <div class="demo-cursor" aria-hidden="true"></div>
+            </div>
+            <div class="demo-status-bar" aria-live="polite" id="demo-status">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span>Ready</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FEATURES ──────────────────────────────────────────── -->
+  <section class="features-section" aria-labelledby="features-heading">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-label">What's inside</div>
+        <h2 class="section-title" id="features-heading">Thoughtfully built.<br>No fluff.</h2>
+      </div>
+
+      <div class="features-grid">
+        <article class="feature-card reveal reveal-delay-1">
+          <span class="feature-icon" aria-hidden="true">🧠</span>
+          <h3 class="feature-title">Fully dynamic AI curation</h3>
+          <p class="feature-desc">No hardcoded song pools. Gemini reads your prompt and reference playlist fresh every time, so every generation is unique to your crowd.</p>
+        </article>
+
+        <article class="feature-card reveal reveal-delay-2">
+          <span class="feature-icon" aria-hidden="true">🚫</span>
+          <h3 class="feature-title">No-repeat guarantee</h3>
+          <p class="feature-desc">BirthDJ remembers every song per playlist name. Regenerate without repeats, or start fresh — your call. Per-playlist history so different events never collide.</p>
+        </article>
+
+        <article class="feature-card reveal reveal-delay-3">
+          <span class="feature-icon" aria-hidden="true">🎨</span>
+          <h3 class="feature-title">Custom cover art</h3>
+          <p class="feature-desc">Each block gets auto-generated gradient cover art in the exact color palette of its mood. Wine &amp; Chill gets deep crimson. Dance Floor gets hot pink. Actual art, in Spotify.</p>
+        </article>
+
+        <article class="feature-card reveal reveal-delay-1">
+          <span class="feature-icon" aria-hidden="true">🔀</span>
+          <h3 class="feature-title">Smart shuffling</h3>
+          <p class="feature-desc">Songs are shuffled within each block so artists aren't clumped together — but the energy arc between blocks is always preserved. Best of both worlds.</p>
+        </article>
+
+        <article class="feature-card reveal reveal-delay-2">
+          <span class="feature-icon" aria-hidden="true">🚧</span>
+          <h3 class="feature-title">Artist blocklist</h3>
+          <p class="feature-desc">List artists in <code>blocked_artists.txt</code> and they're excluded unconditionally — no matter what the AI or mood rules say. Hard veto, no exceptions.</p>
+        </article>
+
+        <article class="feature-card reveal reveal-delay-3">
+          <span class="feature-icon" aria-hidden="true">🌙</span>
+          <h3 class="feature-title">Mood rules on the fly</h3>
+          <p class="feature-desc">Quick one-off tweaks from the menu without touching any files — "more 80s", "extra reggaeton", "no house music tonight." Layers on top of your master prompt.</p>
+        </article>
+
+        <article class="feature-card reveal reveal-delay-1">
+          <span class="feature-icon" aria-hidden="true">📋</span>
+          <h3 class="feature-title">Existing playlist detection</h3>
+          <p class="feature-desc">If a playlist with the same name exists, BirthDJ asks: overwrite, append, or rename? No accidental duplicates, no lost playlists.</p>
+        </article>
+
+        <article class="feature-card reveal reveal-delay-2">
+          <span class="feature-icon" aria-hidden="true">🤖</span>
+          <h3 class="feature-title">Latest Gemini models</h3>
+          <p class="feature-desc">Switch between Gemini 2.0, 2.5 Flash, 2.5 Pro, and previews from the settings menu. Try different models for speed vs. quality tradeoffs on the same party.</p>
+        </article>
+
+        <article class="feature-card reveal reveal-delay-3">
+          <span class="feature-icon" aria-hidden="true">🔒</span>
+          <h3 class="feature-title">Private by default</h3>
+          <p class="feature-desc">Runs entirely on your machine with your own API keys. No accounts, no servers, no data collection. Your party, your music, your privacy.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── PLAYLIST MODES ─────────────────────────────────────── -->
+  <section class="modes-section" aria-labelledby="modes-heading">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-label">Three ways to play</div>
+        <h2 class="section-title" id="modes-heading">Pick your mode.<br>Press play. Forget.</h2>
+        <p class="section-desc">Generate everything in one run. You can even ask for all three at once.</p>
+      </div>
+
+      <div class="modes-grid" role="list">
+        <article class="mode-card reveal reveal-delay-1" role="listitem">
+          <span class="mode-emoji" aria-hidden="true">🎵</span>
+          <h3 class="mode-name">Full Night</h3>
+          <p class="mode-desc">One big playlist, all blocks in order. Press play when guests arrive and don't touch it again. The night runs itself.</p>
+        </article>
+
+        <article class="mode-card featured reveal reveal-delay-2" role="listitem" aria-label="Split Night — most popular mode">
+          <span class="mode-emoji" aria-hidden="true">🎛️</span>
+          <h3 class="mode-name">Split Night</h3>
+          <p class="mode-desc">Separate playlists per vibe. Shuffle each one, switch when the energy shifts. More control, more flexibility for real DJing.</p>
+        </article>
+
+        <article class="mode-card reveal reveal-delay-3" role="listitem">
+          <span class="mode-emoji" aria-hidden="true">✨</span>
+          <h3 class="mode-name">Both</h3>
+          <p class="mode-desc">Get the full night playlist and all the split playlists at once, same songs across both. Decide on the night which to use.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── QUICK START CODE ───────────────────────────────────── -->
+  <section class="quickstart-section" aria-labelledby="quickstart-heading">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-label">Quick start</div>
+        <h2 class="section-title" id="quickstart-heading">Up and running<br>in five minutes.</h2>
+        <p class="section-desc">Python 3.10+, a Spotify developer account, and a Gemini API key. Both API keys are free to get.</p>
+      </div>
+
+      <div class="code-block reveal reveal-delay-1" role="region" aria-label="Quick start terminal commands">
+        <div class="code-header">
+          <div class="code-header-dots" aria-hidden="true">
+            <span class="terminal-dot terminal-dot-red"></span>
+            <span class="terminal-dot terminal-dot-yel"></span>
+            <span class="terminal-dot terminal-dot-grn"></span>
+          </div>
+          <span class="code-header-label">bash</span>
+          <button class="code-copy-btn" id="copy-btn" aria-label="Copy quick start commands to clipboard">Copy</button>
+        </div>
+        <pre aria-label="Quick start commands"><code id="code-snippet"><span class="token-comment"># Clone and install</span>
+<span class="token-command">git</span> clone https://github.com/thepixelabs/birthdj.git
+<span class="token-command">cd</span> birthdj
+<span class="token-command">python3</span> -m venv venv <span class="token-comment">&amp;&amp; source venv/bin/activate</span>
+<span class="token-command">pip</span> install -r requirements.txt
+
+<span class="token-comment"># Set up credentials</span>
+<span class="token-command">cp</span> .env.example .env
+<span class="token-comment"># Edit .env and add your Spotify + Gemini keys</span>
+
+<span class="token-comment"># Run it</span>
+<span class="token-command">python</span> create_playlist.py</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ─────────────────────────────────────────────── -->
+  <footer role="contentinfo">
+    <div class="container">
+      <div class="disco-wrap" aria-hidden="true">
+        <div class="disco-ball"></div>
+      </div>
+
+      <span class="footer-logo" aria-hidden="true">BirthDJ</span>
+      <p class="footer-tagline">AI-powered birthday playlists that actually slap.</p>
+
+      <ul class="footer-links" aria-label="Footer navigation">
+        <li><a href="https://github.com/thepixelabs/birthdj" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <li><a href="https://github.com/thepixelabs/birthdj/blob/main/README.md" target="_blank" rel="noopener noreferrer">Docs</a></li>
+        <li><a href="https://github.com/thepixelabs/birthdj/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing</a></li>
+        <li><a href="https://github.com/thepixelabs/birthdj/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License (ELv2)</a></li>
+        <li><a href="https://github.com/thepixelabs/birthdj/blob/main/docs/ROADMAP.md" target="_blank" rel="noopener noreferrer">Roadmap</a></li>
+      </ul>
+
+      <p class="footer-meta">
+        Built with <span aria-label="purple heart">💜</span> by <a href="https://github.com/thepixelabs" target="_blank" rel="noopener noreferrer">Pixelabs</a>.
+        Free to use under <a href="https://github.com/thepixelabs/birthdj/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">Elastic License 2.0</a>.
+      </p>
+    </div>
+  </footer>
+
+  <!-- ─── JAVASCRIPT ─────────────────────────────────────────── -->
+  <script>
+    'use strict';
+
+    // ── Scroll reveal ──────────────────────────────────────────
+    const revealEls = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    revealEls.forEach(el => revealObserver.observe(el));
+
+    // ── Copy button ────────────────────────────────────────────
+    const copyBtn = document.getElementById('copy-btn');
+    const codeSnippet = document.getElementById('code-snippet');
+
+    copyBtn.addEventListener('click', async () => {
+      const text = codeSnippet.innerText;
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = 'Copied!';
+        copyBtn.style.color = '#4ade80';
+        copyBtn.style.borderColor = 'rgba(74,222,128,0.4)';
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy';
+          copyBtn.style.color = '';
+          copyBtn.style.borderColor = '';
+        }, 2000);
+      } catch {
+        copyBtn.textContent = 'Failed';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+      }
+    });
+
+    // ── Interactive demo ───────────────────────────────────────
+    const demoBtn = document.getElementById('demo-btn');
+    const demoOutput = document.getElementById('demo-output');
+    const demoStatus = document.getElementById('demo-status');
+    const demoName = document.getElementById('demo-name');
+    const demoVibe = document.getElementById('demo-vibe');
+    const demoMode = document.getElementById('demo-mode');
+
+    let isGenerating = false;
+    let currentTimeouts = [];
+
+    function clearTimeouts() {
+      currentTimeouts.forEach(t => clearTimeout(t));
+      currentTimeouts = [];
+    }
+
+    function addLine(text, prefixClass, prefixChar, delay) {
+      return new Promise(resolve => {
+        const t = setTimeout(() => {
+          // Remove cursor
+          const cursor = demoOutput.querySelector('.demo-cursor');
+          if (cursor) cursor.remove();
+
+          const line = document.createElement('div');
+          line.className = 'demo-output-line';
+          line.innerHTML = `<span class="output-prefix ${prefixClass}">${prefixChar}</span><span class="output-text">${text}</span>`;
+          demoOutput.appendChild(line);
+
+          // Re-add cursor
+          const newCursor = document.createElement('span');
+          newCursor.className = 'demo-cursor';
+          newCursor.setAttribute('aria-hidden', 'true');
+          demoOutput.appendChild(newCursor);
+
+          // Scroll to bottom
+          demoOutput.scrollTop = demoOutput.scrollHeight;
+          resolve();
+        }, delay);
+        currentTimeouts.push(t);
+      });
+    }
+
+    function setStatus(text, active) {
+      demoStatus.innerHTML = active
+        ? `<span class="status-dot" aria-hidden="true"></span><span>${text}</span>`
+        : `<span style="width:6px;height:6px;border-radius:50%;background:#4ade80;display:inline-block" aria-hidden="true"></span><span>${text}</span>`;
+    }
+
+    function getVibeLabel(val) {
+      const map = {
+        house: 'House party with close friends',
+        rooftop: 'Rooftop cocktail party',
+        club: 'Club night out',
+        beach: 'Beach bonfire'
+      };
+      return map[val] || val;
+    }
+
+    function getModeLabel(val) {
+      const map = {
+        full: 'Full Night',
+        split: 'Split Night',
+        both: 'Both (Full + Split)'
+      };
+      return map[val] || val;
+    }
+
+    async function runDemo() {
+      if (isGenerating) return;
+      isGenerating = true;
+      clearTimeouts();
+
+      const name = (demoName.value.trim() || 'Birthday').replace(/[<>]/g, '');
+      const vibe = getVibeLabel(demoVibe.value);
+      const mode = getModeLabel(demoMode.value);
+
+      demoBtn.textContent = '⏳ Generating...';
+      demoBtn.disabled = true;
+      demoBtn.setAttribute('aria-busy', 'true');
+
+      // Clear output
+      demoOutput.innerHTML = '<span class="demo-cursor" aria-hidden="true"></span>';
+
+      setStatus('Connecting to Spotify...', true);
+
+      const lines = [
+        ['output-prefix-purple', '✦', `BirthDJ — generating for ${name}'s party`, 100],
+        ['output-prefix-cyan',   '→', `Vibe: ${vibe}`, 600],
+        ['output-prefix-cyan',   '→', `Mode: ${mode}`, 1000],
+        ['output-prefix-yellow', '◎', 'Authenticating with Spotify...', 1600],
+        ['output-prefix-green',  '✓', 'Spotify connected.', 2200],
+        ['output-prefix-yellow', '◎', 'Reading master_prompt.md...', 2800],
+        ['output-prefix-green',  '✓', 'Prompt loaded — 63 lines of vibes.', 3400],
+        ['output-prefix-yellow', '◎', 'Fetching reference playlist...', 3900],
+        ['output-prefix-green',  '✓', '47 reference tracks analysed.', 4600],
+        ['output-prefix-pink',   '✦', 'Asking Gemini to curate the night...', 5400],
+        ['output-prefix-purple', '①', '🍷  Wine &amp; Chill — 32 songs', 6400],
+        ['output-prefix-orange', '②', '🎤  Singalongs — 35 songs', 7200],
+        ['output-prefix-pink',   '③', '🪩  Dance Floor — 40 songs', 8000],
+        ['output-prefix-purple', '④', '🌙  Late Groove — 35 songs', 8800],
+        ['output-prefix-cyan',   '⑤', '🌅  Sunrise — 18 songs', 9400],
+        ['output-prefix-yellow', '◎', 'Shuffling within blocks...', 10200],
+        ['output-prefix-yellow', '◎', 'Generating cover art...', 10800],
+        ['output-prefix-yellow', '◎', `Creating "${name} Birthday 🎂" in Spotify...`, 11600],
+        ['output-prefix-green',  '✓', `Done! 160 songs, ~9.5 hours of music.`, 12600],
+        ['output-prefix-green',  '✓', 'Open Spotify and press play. Have a great party! 🎉', 13200],
+      ];
+
+      for (const [prefixClass, prefixChar, text, delay] of lines) {
+        await addLine(text, prefixClass, prefixChar, delay);
+      }
+
+      const done = setTimeout(() => {
+        setStatus('Playlist created in Spotify', false);
+        demoBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg> Generate again`;
+        demoBtn.disabled = false;
+        demoBtn.setAttribute('aria-busy', 'false');
+        isGenerating = false;
+      }, 13500);
+
+      currentTimeouts.push(done);
+    }
+
+    demoBtn.addEventListener('click', runDemo);
+
+    // Allow Enter key on button (already default for button, but nice to be explicit)
+    demoBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        runDemo();
+      }
+    });
+
+    // ── Reduce motion ──────────────────────────────────────────
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (prefersReducedMotion.matches) {
+      document.querySelectorAll('.ticker-track').forEach(el => {
+        el.style.animationPlayState = 'paused';
+      });
+      document.querySelectorAll('.hero-orb, .ray').forEach(el => {
+        el.style.animationPlayState = 'paused';
+      });
+    }
+  </script>
+</body>
+</html>
