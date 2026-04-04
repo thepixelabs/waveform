@@ -1,8 +1,1 @@
-[build]
-  publish = "landing"
-  command = ""
-
-[[headers]]
-  for = "/*.html"
-  [headers.values]
-    Cache-Control = "public, max-age=300"
+# Migrated to GitHub Pages — this file is intentionally empty.
