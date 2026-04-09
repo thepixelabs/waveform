@@ -1,5 +1,21 @@
+# Core dependencies (required for both v1 CLI and v2 package)
 spotipy>=2.23.0
 google-genai>=1.0.0
 Pillow>=10.0.0
 python-dotenv>=1.0.0
 questionary>=2.0.0
+
+# v2 UI (Phase 2+)
+customtkinter>=5.2.0
+
+# v2 audio (Phase 7) — pygame.mixer chosen per CEO Q6 recommendation for MVP.
+# To switch to python-vlc: comment out pygame, uncomment python-vlc, and pass
+# strategy="vlc" to PreviewAudioPlayer() in app/main.py.
+pygame>=2.5.0
+# python-vlc>=3.0.0   # better streaming, requires VLC installed
+
+# v2 analytics (Phase 10)
+posthog>=3.0.0
+
+# All packages above are confirmed used by Phase 1-11 modules.
+# Verified in Phase 12 beta-readiness audit.

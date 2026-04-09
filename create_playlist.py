@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-Waveform — AI-powered birthday party playlist generator for Spotify.
-Songs curated dynamically by Gemini AI based on your taste and vibe.
+Waveform v1 CLI — legacy entry point.
+
+This file is kept as a working CLI shim for backward compatibility with v1 users.
+The v2 package lives in waveform/ and is the active development path.
+
+v2 entry point: python -m waveform.app.main
 """
 
 import spotipy

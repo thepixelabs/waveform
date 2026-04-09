@@ -1,0 +1,9 @@
+# Place Inter font files here for best rendering:
+# Inter-Regular.ttf
+# Inter-Bold.ttf
+#
+# Download from: https://fonts.google.com/specimen/Inter
+# or: https://rsms.me/inter/
+#
+# Without these files, the cover art generator will fall back to system fonts
+# (Arial on macOS, DejaVu on Linux) which is acceptable for beta.
