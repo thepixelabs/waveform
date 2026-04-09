@@ -1,9 +1,9 @@
-# Arc
+# Waveform
 
 **The invisible architect of your night.**
 
-> **The Arc Manifesto**
-> Bad music kills good parties. We believe every great event deserves an engineered soundtrack—a sequence of energy that moves with the crowd, from the first pour to the final sunrise. Arc isn't just a playlist generator; it's a safeguard for your night.
+> **The Waveform Manifesto**
+> Bad music kills good parties. We believe every great event deserves an engineered soundtrack—a sequence of energy that moves with the crowd, from the first pour to the final sunrise. Waveform isn't just a playlist generator; it's a safeguard for your night.
 
 Design the full soundtrack of any event with the precision of a professional DJ and the intuition of Gemini AI.
 
@@ -13,7 +13,7 @@ Design the full soundtrack of any event with the precision of a professional DJ 
 
 ## How it works
 
-Arc is a desktop engine for engineered emotion. The process is a five-step orchestration:
+Waveform is a desktop engine for engineered emotion. The process is a five-step orchestration:
 
 1. **The Blueprint** — Choose from 10 built-in event templates (Birthday, Wedding, Club Night, etc.). Each seeds a proven block schedule and energy arc.
 2. **Define the Frequency** — A horizontal timeline of named blocks. Drag, resize, and reorder the night. Each block has an archetype that drives its visual identity and sonic soul.
@@ -23,15 +23,15 @@ Arc is a desktop engine for engineered emotion. The process is a five-step orche
 
 ### The Feedback Loop
 
-When you veto a song, Arc listens. It records the context—*too slow, wrong vibe, overplayed*—and injects that intelligence back into the next generation. The engine learns your crowd's taste in real-time.
+When you veto a song, Waveform listens. It records the context—*too slow, wrong vibe, overplayed*—and injects that intelligence back into the next generation. The engine learns your crowd's taste in real-time.
 
 ## Quick start
 
 Requires Python 3.11+.
 
 ```bash
-git clone https://github.com/thepixelabs/arc.git
-cd arc
+git clone https://github.com/thepixelabs/waveform.git
+cd waveform
 ```
 
 source venv/bin/activate        # Windows: venv\Scripts\activate

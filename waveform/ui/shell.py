@@ -86,7 +86,7 @@ class WaveformApp(ctk.CTk if HAS_CTK else object):  # type: ignore
 
         ctk.CTkLabel(
             logo_frame,
-            text="Arc",
+            text="Waveform",
             font=(theme.FONT_UI, theme.TEXT_MD, "bold"),
             text_color=theme.BRAND_GRADIENT_MID,
         ).pack(side="left")
