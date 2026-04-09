@@ -86,10 +86,18 @@ class WaveformApp(ctk.CTk if HAS_CTK else object):  # type: ignore
 
         ctk.CTkLabel(
             logo_frame,
-            text="Waveform",
+            text="Arc",
             font=(theme.FONT_UI, theme.TEXT_MD, "bold"),
             text_color=theme.BRAND_GRADIENT_MID,
         ).pack(side="left")
+
+        # Spotify attribution
+        ctk.CTkLabel(
+            logo_frame,
+            text="Powered by Spotify",
+            font=(theme.FONT_UI, theme.TEXT_XS),
+            text_color=theme.TEXT_DIM,
+        ).pack(side="left", padx=theme.SP_3)
 
         # Event name (clickable → EVENT_SETUP)
         self._event_name_label = ctk.CTkLabel(

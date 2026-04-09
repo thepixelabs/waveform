@@ -1,14 +1,17 @@
-# Contributing to Waveform
+# Join the Movement
 
-Thanks for your interest in contributing! This guide covers everything you need to get started.
+**Help us end bad party music.**
+
+Thanks for your interest in contributing! Waveform is more than a tool; it's a shared mission to provide the world with the invisible architecture for unforgettable nights. By contributing, you're helping hosts everywhere safeguard their events.
 
 ## Getting started
 
 ### Prerequisites
 
+We're looking for architects, not just coders. You'll need:
 - Python 3.10+
-- A Spotify developer account ([developer.spotify.com/dashboard](https://developer.spotify.com/dashboard))
-- A Google Gemini API key ([aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey))
+- A Spotify developer account
+- A Google Gemini API key
 
 ### Development setup
 

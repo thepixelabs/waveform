@@ -1,31 +1,39 @@
-# Waveform
+# Arc
 
-**AI-powered event playlist designer for Spotify.**
+**The invisible architect of your night.**
 
-Design the full soundtrack of any event — birthday, wedding, club night, rooftop bar, corporate dinner, house party, and more. Sketch a block schedule, dial in genre weights per block, and let Gemini AI generate every song. Then preview each track and curate with keep, skip, or veto. The playlist lands in your Spotify account with custom cover art.
+> **The Arc Manifesto**
+> Bad music kills good parties. We believe every great event deserves an engineered soundtrack—a sequence of energy that moves with the crowd, from the first pour to the final sunrise. Arc isn't just a playlist generator; it's a safeguard for your night.
+
+Design the full soundtrack of any event with the precision of a professional DJ and the intuition of Gemini AI.
+
+**Powered by Spotify.**
+
+---
 
 ## How it works
 
-Waveform is a desktop app. The workflow has five steps:
+Arc is a desktop engine for engineered emotion. The process is a five-step orchestration:
 
-1. **Pick a template** — choose from 10 built-in event types (Birthday, Wedding, Club Night, Rooftop Bar, Corporate Dinner, House Party, Funeral/Memorial, Road Trip, Workout, Focus Session). Each seeds a block schedule and default genre weights. Everything is editable.
-2. **Build your schedule** — a horizontal timeline of named blocks. Drag to reorder, grab an edge to resize, click to add. Each block has an archetype (Arrival, Dance Floor, Singalong, Groove, Late Night, Sunrise, etc.) that drives its visual identity and default energy level.
-3. **Set genre weights** — per-block sliders from a library of ~300 genre tags. Up to 6 active genres per block. Weights are relative nudges ("lean heavily into X, a bit of Y"), not quotas.
-4. **Generate and curate** — Gemini streams songs into a card feed as they arrive. For each song: preview the 30-second Spotify clip, then hit Keep (`Space`), Skip (`S`), or Veto (`Backspace`).
-5. **Export** — approved songs go to Spotify as a playlist with parametric cover art generated per block archetype.
+1. **The Blueprint** — Choose from 10 built-in event templates (Birthday, Wedding, Club Night, etc.). Each seeds a proven block schedule and energy arc.
+2. **Define the Frequency** — A horizontal timeline of named blocks. Drag, resize, and reorder the night. Each block has an archetype that drives its visual identity and sonic soul.
+3. **Vibe Dialing** — Per-block genre sliders from a library of ~300 tags. Nudge the night—lean into 80s synth, pull back on heavy bass. You are the conductor.
+4. **Intuitive Curation** — Gemini streams songs into a live feed. Preview the 30-second pulse, then Keep (`Space`), Skip (`S`), or Veto (`Backspace`).
+5. **The Export** — Approved tracks land in Spotify with parametric cover art generated for each chapter of your night.
 
-### The veto feedback loop
+### The Feedback Loop
 
-When you veto a song, Waveform records it with optional context (too slow / wrong genre / overplayed / not the vibe / artist already used). Every subsequent generation call in the same session injects those vetoes into the prompt. The AI learns what you don't want in real time — without you touching any settings. Keeps also feed back as positive reinforcement.
+When you veto a song, Arc listens. It records the context—*too slow, wrong vibe, overplayed*—and injects that intelligence back into the next generation. The engine learns your crowd's taste in real-time.
 
 ## Quick start
 
 Requires Python 3.11+.
 
 ```bash
-git clone https://github.com/thepixelabs/waveform.git
-cd waveform
-python3 -m venv venv
+git clone https://github.com/thepixelabs/arc.git
+cd arc
+```
+
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
