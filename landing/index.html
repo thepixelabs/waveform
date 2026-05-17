@@ -38,10 +38,11 @@
       --ink:   #08070e;
       --ink2:  #0d0b1a;
       --paper: #f0ecff;
-      --muted: rgba(240,236,255,0.42);
-      --dim:   rgba(240,236,255,0.18);
-      --rule:  rgba(240,236,255,0.1);
+      --muted: rgba(240,236,255,0.72);
+      --dim:   rgba(240,236,255,0.45);
+      --rule:  rgba(240,236,255,0.12);
       --nav-bg: rgba(8,7,14,0.82);
+      --hover-bg: rgba(240,236,255,0.06);
     }
 
     /* Light theme */
@@ -49,10 +50,11 @@
       --ink:   #f5f3ff;
       --ink2:  #ebe7ff;
       --paper: #120f24;
-      --muted: rgba(18,15,36,0.55);
-      --dim:   rgba(18,15,36,0.25);
-      --rule:  rgba(18,15,36,0.12);
-      --nav-bg: rgba(245,243,255,0.88);
+      --muted: rgba(18,15,36,0.72);
+      --dim:   rgba(18,15,36,0.50);
+      --rule:  rgba(18,15,36,0.14);
+      --nav-bg: rgba(245,243,255,0.92);
+      --hover-bg: rgba(18,15,36,0.05);
     }
 
     @media (prefers-color-scheme: light) {
@@ -60,10 +62,11 @@
         --ink:   #f5f3ff;
         --ink2:  #ebe7ff;
         --paper: #120f24;
-        --muted: rgba(18,15,36,0.55);
-        --dim:   rgba(18,15,36,0.25);
-        --rule:  rgba(18,15,36,0.12);
-        --nav-bg: rgba(245,243,255,0.88);
+        --muted: rgba(18,15,36,0.72);
+        --dim:   rgba(18,15,36,0.50);
+        --rule:  rgba(18,15,36,0.14);
+        --nav-bg: rgba(245,243,255,0.92);
+        --hover-bg: rgba(18,15,36,0.05);
       }
     }
 
@@ -92,10 +95,11 @@
     }
 
     /* ── NAV ─────────────────────────────────────────────────── */
-    nav {
+    nav.site-nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 800;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 var(--gutter);
+      gap: 12px;
+      padding: 0 clamp(16px, 5vw, 60px);
       height: 56px;
       border-bottom: 1px solid var(--rule);
       background: var(--nav-bg);
@@ -105,11 +109,13 @@
     }
 
     .nav-logo {
-      display: flex; align-items: center; gap: 12px;
+      display: flex; align-items: center; gap: 10px;
       text-decoration: none; color: var(--paper);
       font-family: var(--grotesk); font-weight: 700;
       font-size: 0.9375rem; letter-spacing: 0.04em;
       text-transform: uppercase;
+      min-width: 0; flex-shrink: 1;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
     /* Animated logo bars */
@@ -133,14 +139,18 @@
       50%       { transform: scaleY(0.3); opacity: 0.35; }
     }
 
-    .nav-right { display: flex; align-items: center; gap: 24px; }
+    .nav-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
     .nav-link {
       color: var(--muted); font-size: 0.8125rem; letter-spacing: 0.02em;
       text-decoration: none; transition: color 0.15s;
       display: none;
+      white-space: nowrap;
     }
     .nav-link:hover { color: var(--paper); }
-    @media (min-width: 680px) { .nav-link { display: block; } }
+    @media (min-width: 680px) {
+      .nav-right { gap: 20px; }
+      .nav-link { display: block; }
+    }
 
     .nav-gh {
       display: inline-flex; align-items: center; gap: 7px;
@@ -151,24 +161,37 @@
       font-family: var(--mono); font-size: 0.75rem;
       letter-spacing: 0.03em;
       transition: border-color 0.15s, background 0.15s;
+      white-space: nowrap;
     }
     .nav-gh:hover {
       border-color: var(--muted);
-      background: rgba(240,236,255,0.06);
+      background: var(--hover-bg);
     }
+    /* Icon-only on mobile — balanced padding */
+    .nav-gh-label { display: none; }
+    @media (max-width: 479px) {
+      .nav-gh { padding: 6px 10px; gap: 0; }
+    }
+    @media (min-width: 480px) { .nav-gh-label { display: inline; } }
 
-    .nav-theme {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: none; border: 1px solid var(--rule);
-      border-radius: 3px; padding: 5px 10px;
-      color: var(--muted); cursor: pointer;
-      font-family: var(--mono); font-size: 0.7rem;
-      letter-spacing: 0.04em; text-transform: uppercase;
-      transition: color 0.15s, border-color 0.15s;
+    /* Cycling theme button */
+    .theme-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 14px;
+      background: var(--ink2);
+      border: 1px solid var(--muted);
+      border-radius: 4px;
+      color: var(--paper);
+      cursor: pointer;
+      font-family: var(--mono); font-size: 0.72rem;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    .nav-theme:hover { color: var(--paper); border-color: var(--muted); }
-    .nav-theme-label { display: none; }
-    @media (min-width: 780px) { .nav-theme-label { display: inline; } }
+    .theme-btn:hover { background: var(--rule); border-color: var(--paper); }
+    .t-label { display: inline; }
+    .t-icon { display: none; }
 
     /* ── HERO ────────────────────────────────────────────────── */
     /* No orbs. No centered stack. Type does the work. */
@@ -275,7 +298,7 @@
       transition: background 0.15s, transform 0.15s;
     }
     .btn-primary:hover {
-      background: #fff;
+      opacity: 0.88;
       transform: translateY(-1px);
     }
 
@@ -294,8 +317,11 @@
     .btn-secondary:hover { color: var(--paper); border-color: var(--dim); }
 
     @media (max-width: 680px) {
+      .hero { padding-left: var(--gutter); padding-right: var(--gutter); padding-bottom: 60px; }
       .hero-sub-row { flex-direction: column; gap: 28px; }
       .hero-title { letter-spacing: -0.03em; }
+      .hero-actions { width: 100%; }
+      .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
     }
 
     /* ── TICKER ──────────────────────────────────────────────── */
@@ -385,7 +411,7 @@
       cursor: default;
       transition: background 0.25s;
     }
-    .arc-block:hover { background: rgba(240,236,255,0.025); }
+    .arc-block:hover { background: var(--hover-bg); }
 
     .arc-block-bar {
       /* Left vertical color bar — the only decoration needed */
@@ -447,9 +473,12 @@
     @media (max-width: 760px) {
       .arc-block-body {
         grid-template-columns: 1fr;
-        gap: 10px;
+        gap: 8px;
+        padding-top: clamp(24px, 4vw, 40px);
+        padding-bottom: clamp(24px, 4vw, 40px);
       }
       .arc-block-meta { text-align: left; }
+      .arc-block-count { margin-top: 4px; }
     }
 
     /* ── SETUP — editorial numbered prose, not a step strip ─── */
@@ -498,7 +527,7 @@
     .setup-step-desc code {
       font-family: var(--mono); font-size: 0.8125rem;
       color: var(--paper);
-      background: rgba(240,236,255,0.07);
+      background: var(--rule);
       padding: 1px 6px; border-radius: 2px;
     }
 
@@ -554,7 +583,7 @@
       color: var(--dim); margin-bottom: 7px; display: block;
     }
     .ctrl-input, .ctrl-select {
-      background: rgba(240,236,255,0.04);
+      background: var(--hover-bg);
       border: 1px solid var(--rule);
       border-radius: 3px;
       padding: 9px 12px;
@@ -581,7 +610,7 @@
       cursor: pointer;
       transition: background 0.15s, transform 0.15s;
     }
-    .demo-gen-btn:hover { background: #fff; transform: translateY(-1px); }
+    .demo-gen-btn:hover { opacity: 0.88; transform: translateY(-1px); }
     .demo-gen-btn:active { transform: translateY(0); }
     .demo-gen-btn:focus-visible { outline: 2px solid var(--paper); outline-offset: 3px; }
 
@@ -643,6 +672,13 @@
       .demo-body { grid-template-columns: 1fr; }
       .demo-controls { border-right: none; border-bottom: 1px solid var(--rule); }
     }
+    .demo-output-wrap { min-width: 0; }
+    .demo-out { min-width: 0; overflow-x: auto; word-break: break-all; }
+    @media (max-width: 480px) {
+      .demo-section { padding-left: var(--gutter); padding-right: var(--gutter); }
+      .demo-controls { padding: 20px; }
+      .demo-output-wrap { padding: 16px; }
+    }
 
     /* ── FEATURES — text ledger, no card grid ───────────────── */
     .features-section {
@@ -664,7 +700,7 @@
       border-bottom: 1px solid var(--rule);
       transition: background 0.15s;
     }
-    .feat-row:hover { background: rgba(240,236,255,0.025); }
+    .feat-row:hover { background: var(--hover-bg); }
 
     .feat-name {
       font-family: var(--grotesk);
@@ -681,7 +717,7 @@
     .feat-desc code {
       font-family: var(--mono); font-size: 0.8125rem;
       color: var(--paper);
-      background: rgba(240,236,255,0.07);
+      background: var(--rule);
       padding: 1px 6px; border-radius: 2px;
     }
 
@@ -713,7 +749,7 @@
     }
     .mode-col:last-child { border-right: none; }
     .mode-col.featured {
-      background: rgba(240,236,255,0.03);
+      background: var(--hover-bg);
     }
     .mode-col.featured::before {
       content: 'Most used';
@@ -775,7 +811,7 @@
       font-family: var(--mono);
       font-size: 0.875rem; line-height: 1.9;
     }
-    .tk-comment { color: rgba(240,236,255,0.25); }
+    .tk-comment { color: var(--dim); }
     .tk-cmd     { color: var(--sunrise); }
     .tk-key     { color: var(--dance); }
     .tk-val     { color: color-mix(in srgb, var(--groove) 50%, var(--paper)); }
@@ -788,7 +824,7 @@
     }
     .footer-inner {
       max-width: var(--col); margin: 0 auto;
-      display: grid; grid-template-columns: 1fr 1fr;
+      display: grid; grid-template-columns: 1fr auto;
       gap: 48px; align-items: start;
     }
 
@@ -823,14 +859,34 @@
     .footer-tagline {
       font-size: 0.9rem; color: var(--muted); margin-bottom: 28px;
     }
-    .footer-meta { font-size: 0.8125rem; color: var(--dim); }
-    .footer-meta a { color: rgba(240,236,255,0.28); text-decoration: none; transition: color 0.15s; }
-    .footer-meta a:hover { color: var(--muted); }
+    .footer-meta { font-size: 0.8125rem; color: var(--muted); line-height: 1.6; }
+    .footer-meta a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+    .footer-meta a:hover { color: var(--paper); }
+    .footer-attribution {
+      display: flex; align-items: center; flex-wrap: wrap;
+      gap: 4px 12px;
+      font-size: 0.8125rem; color: var(--muted);
+      margin-top: 20px;
+    }
+    .footer-attribution a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+    .footer-attribution a:hover { color: var(--paper); }
+    .footer-attr-sep {
+      color: var(--dim); user-select: none;
+    }
+    .footer-legal {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: var(--dim);
+      line-height: 1.6;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
 
     .footer-links {
       list-style: none;
       display: flex; flex-direction: row; flex-wrap: wrap;
-      gap: 8px 28px; justify-content: center;
+      gap: 6px 20px;
+      align-items: flex-start;
     }
     .footer-links a {
       color: var(--muted); text-decoration: none;
@@ -839,7 +895,8 @@
     .footer-links a:hover { color: var(--paper); }
 
     @media (max-width: 600px) {
-      .footer-inner { grid-template-columns: 1fr; }
+      .footer-inner { grid-template-columns: 1fr; gap: 40px; }
+      .footer-links { flex-direction: row; flex-wrap: wrap; gap: 8px 24px; }
     }
 
     /* ── SCROLL REVEAL ───────────────────────────────────────── */
@@ -880,7 +937,7 @@
 <body>
 
 <!-- ── NAV ───────────────────────────────────────────────────── -->
-<nav aria-label="Site navigation">
+<nav class="site-nav" aria-label="Site navigation">
   <a href="#" class="nav-logo" aria-label="Waveform home">
     <span class="logo-bars" aria-hidden="true">
       <span></span><span></span><span></span>
@@ -892,15 +949,15 @@
     <a href="#night-arc" class="nav-link">The arc</a>
     <a href="#setup" class="nav-link">Setup</a>
     <a href="#features" class="nav-link">Features</a>
-    <button class="nav-theme" id="theme-toggle" aria-label="Toggle colour theme" title="Cycle theme: system / light / dark">
-      <svg class="icon-system" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-      <svg class="icon-light" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="display:none"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-      <svg class="icon-dark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      <span class="nav-theme-label">System</span>
-    </button>
+    <button class="theme-btn" id="theme-toggle" title="Cycle theme">
+  <svg class="t-icon t-icon-system" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+  <svg class="t-icon t-icon-light" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="5"/></svg>
+  <svg class="t-icon t-icon-dark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  <span class="t-label">System</span>
+</button>
     <a href="https://github.com/thepixelabs/waveform" class="nav-gh" target="_blank" rel="noopener noreferrer" aria-label="Waveform on GitHub">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      GitHub
+      <span class="nav-gh-label">GitHub</span>
     </a>
   </div>
 </nav>
@@ -911,14 +968,8 @@
   <div class="hero-accent" aria-hidden="true"></div>
 
   <div class="hero-kicker">
-    <span style="display:inline-flex;align-items:center;gap:6px;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.491 17.306c-.215.353-.672.464-1.025.249-2.856-1.745-6.452-2.14-10.686-1.171-.403.092-.806-.16-.898-.563-.092-.403.16-.806.563-.898 4.636-1.06 8.61-.599 11.797 1.351.353.215.464.672.249 1.032zm1.466-3.26c-.271.441-.845.578-1.286.307-3.269-2.009-8.252-2.593-12.119-1.419-.497.151-1.023-.131-1.174-.628-.151-.497.131-1.023.628-1.174 4.414-1.339 9.897-.687 13.644 1.614.441.271.578.845.307 1.3zm.135-3.376C13.843 8.874 8.01 8.681 4.653 9.7c-.551.167-1.127-.156-1.294-.707s.156-1.127.707-1.294c3.856-1.17 10.301-.947 15.112 1.907.497.294.662.935.368 1.432-.294.498-.935.663-1.432.369z"/></svg>
-      Powered by Spotify
-    </span>
-    &nbsp;/&nbsp; Gemini AI &nbsp;/&nbsp; Open Source
+    AI Spotify Playlist Generator &nbsp;/&nbsp; Open Source
   </div>
-
-  <div class="hero-time" aria-hidden="true">20:00 — 05:00</div>
 
   <h1 class="hero-title" id="main-heading">
     The night,<br>
@@ -1324,16 +1375,14 @@
       </div>
       <span class="footer-wordmark">Waveform</span>
       <p class="footer-tagline">Engineered emotion for events that matter.</p>
-      <p class="footer-meta">
-        Powered by <a href="https://spotify.com" target="_blank" rel="noopener noreferrer">Spotify</a>.
-        Built with <a href="https://ai.google.dev" target="_blank" rel="noopener noreferrer">Gemini AI</a>.
-      </p>
-      <p class="footer-meta" style="margin-top: 12px; font-size: 0.7rem; opacity: 0.5;">
-        This project is not affiliated with or endorsed by Spotify AB.
-        Spotify® is a trademark of Spotify AB.
-      </p>
-      <p class="footer-meta">
-        Free under <a href="https://github.com/thepixelabs/waveform/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">Elastic License 2.0</a>.
+      <div class="footer-attribution">
+        <span>Powered by <a href="https://spotify.com" target="_blank" rel="noopener noreferrer">Spotify</a></span>
+        <span class="footer-attr-sep" aria-hidden="true">/</span>
+        <span>Free under <a href="https://github.com/thepixelabs/waveform/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">Elastic License 2.0</a></span>
+      </div>
+      <p class="footer-legal">
+        Not affiliated with or endorsed by Spotify AB.
+        Spotify® is a registered trademark of Spotify AB.
       </p>
     </div>
 
@@ -1343,7 +1392,6 @@
         <li><a href="https://github.com/thepixelabs/waveform/blob/main/README.md" target="_blank" rel="noopener noreferrer">Docs</a></li>
         <li><a href="https://github.com/thepixelabs/waveform/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing</a></li>
         <li><a href="https://github.com/thepixelabs/waveform/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License (ELv2)</a></li>
-        <li><a href="https://github.com/thepixelabs/waveform/blob/main/docs/ROADMAP.md" target="_blank" rel="noopener noreferrer">Roadmap</a></li>
       </ul>
     </nav>
 
@@ -1367,53 +1415,6 @@ const revealObs = new IntersectionObserver(entries => {
 revealEls.forEach(el => revealObs.observe(el));
 
 /* ── Arc block scroll-tint ────────────────────────────────── */
-/*
-  As each arc block enters the viewport, briefly tint the
-  background to the block's color for a sense of the night shifting.
-  Subtle — opacity capped at 0.06 so it's felt, not seen.
-*/
-(function () {
-  const blockColors = {
-    'arc-chill':   '120,40,90',
-    'arc-sing':    '201,72,32',
-    'arc-dance':   '214,22,104',
-    'arc-groove':  '24,40,160',
-    'arc-sunrise': '30,128,128',
-  };
-
-  const blocks = document.querySelectorAll('.arc-block');
-  if (!blocks.length) return;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-  const body = document.body;
-
-  const obs = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (!e.isIntersecting) return;
-      const key = Object.keys(blockColors).find(c => e.target.classList.contains(c));
-      if (!key) return;
-      body.style.transition = 'background-color 1.2s ease';
-      body.style.backgroundColor = `rgb(${blockColors[key].split(',').map((v,i) =>
-        Math.round(8 + parseInt(v) * 0.04)
-      ).join(',')})`;
-    });
-  }, { threshold: 0.4 });
-
-  blocks.forEach(b => obs.observe(b));
-
-  /* Reset to base ink when arc section leaves */
-  const arcSection = document.getElementById('night-arc');
-  if (arcSection) {
-    const resetObs = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (!e.isIntersecting) {
-          body.style.backgroundColor = '';
-        }
-      });
-    }, { threshold: 0 });
-    resetObs.observe(arcSection);
-  }
-})();
 
 /* ── Copy button ──────────────────────────────────────────── */
 const copyBtn  = document.getElementById('copy-btn');
@@ -1498,27 +1499,27 @@ async function runDemo() {
   demoStatus.innerHTML = '<span class="status-dot" aria-hidden="true"></span><span>Connecting to Spotify...</span>';
 
   const lines = [
-    ['pre-neutral', '$', `python create_playlist.py`,                              100, true],
-    ['pre-neutral', ' ', `Waveform — generating for ${name}`,                       600, false],
-    ['pre-neutral', ' ', `Vibe: ${vibe}`,                                          1020, true],
-    ['pre-neutral', ' ', `Mode: ${mode}`,                                          1320, true],
-    ['pre-wait',    '>', 'Authenticating with Spotify...',                         1800, false],
-    ['pre-ok',      '+', 'Spotify connected.',                                     2380, false],
-    ['pre-wait',    '>', 'Reading master_prompt.md...',                            2880, false],
-    ['pre-ok',      '+', 'Prompt loaded — 63 lines.',                              3480, false],
-    ['pre-wait',    '>', 'Fetching reference playlist...',                         3980, false],
-    ['pre-ok',      '+', '47 reference tracks analysed.',                          4680, false],
-    ['pre-wait',    '>', 'Asking Gemini to curate the arc...',                     5360, false],
-    ['pre-chill',   '1', 'Wine &amp; Chill        32 songs   20:00–22:00',         6400, false],
-    ['pre-sing',    '2', 'Singalongs            35 songs   22:00–00:00',           7120, false],
-    ['pre-dance',   '3', 'Dance Floor           40 songs   00:00–02:00',           7840, false],
-    ['pre-groove',  '4', 'Late Groove           35 songs   02:00–04:00',           8600, false],
-    ['pre-sunrise', '5', 'Sunrise               18 songs   04:00–05:00',           9200, false],
-    ['pre-wait',    '>', 'Shuffling within blocks...',                            10000, false],
-    ['pre-wait',    '>', 'Generating cover art...',                               10580, false],
-    ['pre-wait',    '>', `Creating "${name} Birthday" in Spotify...`,             11340, false],
-    ['pre-ok',      '+', `Done. 160 songs, ~9.5 hours.`,                         12340, false],
-    ['pre-ok',      '+', 'Open Spotify and press play.',                          12920, false],
+    ['pre-neutral', '$', `python create_playlist.py`,                             100, true],
+    ['pre-neutral', ' ', `Waveform — generating for ${name}`,                     240, false],
+    ['pre-neutral', ' ', `Vibe: ${vibe}`,                                         400, true],
+    ['pre-neutral', ' ', `Mode: ${mode}`,                                         520, true],
+    ['pre-wait',    '>', 'Authenticating with Spotify...',                        720, false],
+    ['pre-ok',      '+', 'Spotify connected.',                                    950, false],
+    ['pre-wait',    '>', 'Reading master_prompt.md...',                          1150, false],
+    ['pre-ok',      '+', 'Prompt loaded — 63 lines.',                            1400, false],
+    ['pre-wait',    '>', 'Fetching reference playlist...',                       1600, false],
+    ['pre-ok',      '+', '47 reference tracks analysed.',                        1870, false],
+    ['pre-wait',    '>', 'Asking Gemini to curate the arc...',                   2140, false],
+    ['pre-chill',   '1', 'Wine &amp; Chill        32 songs   20:00–22:00',       2560, false],
+    ['pre-sing',    '2', 'Singalongs            35 songs   22:00–00:00',         2850, false],
+    ['pre-dance',   '3', 'Dance Floor           40 songs   00:00–02:00',         3140, false],
+    ['pre-groove',  '4', 'Late Groove           35 songs   02:00–04:00',         3440, false],
+    ['pre-sunrise', '5', 'Sunrise               18 songs   04:00–05:00',         3680, false],
+    ['pre-wait',    '>', 'Shuffling within blocks...',                           4000, false],
+    ['pre-wait',    '>', 'Generating cover art...',                              4230, false],
+    ['pre-wait',    '>', `Creating "${name} Birthday" in Spotify...`,            4540, false],
+    ['pre-ok',      '+', `Done. 160 songs, ~9.5 hours.`,                        4940, false],
+    ['pre-ok',      '+', 'Open Spotify and press play.',                         5170, false],
   ];
 
   for (const [pc, p, txt, delay, dim] of lines) {
@@ -1531,7 +1532,7 @@ async function runDemo() {
     demoBtn.disabled = false;
     demoBtn.setAttribute('aria-busy','false');
     generating = false;
-  }, 13200);
+  }, 5400);
   timeouts.push(done);
 }
 
@@ -1548,37 +1549,34 @@ demoBtn.addEventListener('keydown', e => {
   }, { passive: true });
 })();
 
-/* ── Theme toggle ──────────────────────────────────────── */
+/* ── Theme cycling button ──────────────────────────────── */
 (function () {
   const btn = document.getElementById('theme-toggle');
   if (!btn) return;
-
-  const THEMES = ['system', 'light', 'dark'];
-  const ICONS  = { system: '.icon-system', light: '.icon-light', dark: '.icon-dark' };
+  const MODES = ['system', 'light', 'dark'];
   const LABELS = { system: 'System', light: 'Light', dark: 'Dark' };
 
-  function applyTheme(t) {
-    if (t === 'system') {
+  function apply(mode) {
+    if (mode === 'system') {
       document.documentElement.removeAttribute('data-theme');
     } else {
-      document.documentElement.setAttribute('data-theme', t);
+      document.documentElement.setAttribute('data-theme', mode);
     }
-    Object.keys(ICONS).forEach(k => {
-      btn.querySelector(ICONS[k]).style.display = k === t ? '' : 'none';
-    });
-    const lbl = btn.querySelector('.nav-theme-label');
-    if (lbl) lbl.textContent = LABELS[t];
-    btn.setAttribute('aria-label', `Theme: ${LABELS[t]} — click to cycle`);
-    localStorage.setItem('wf-theme', t);
+    // show correct icon
+    btn.querySelectorAll('.t-icon').forEach(el => el.style.display = 'none');
+    const icon = btn.querySelector('.t-icon-' + mode);
+    if (icon) icon.style.display = 'inline';
+    btn.querySelector('.t-label').textContent = LABELS[mode];
+    localStorage.setItem('wf-theme', mode);
   }
 
   const saved = localStorage.getItem('wf-theme') || 'system';
-  applyTheme(saved);
+  apply(saved);
 
   btn.addEventListener('click', () => {
     const cur = document.documentElement.getAttribute('data-theme') || 'system';
-    const next = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
-    applyTheme(next);
+    const next = MODES[(MODES.indexOf(cur) + 1) % MODES.length];
+    apply(next);
   });
 })();
 </script>
