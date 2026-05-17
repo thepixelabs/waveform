@@ -76,7 +76,7 @@
       font-family: var(--grotesk);
       font-size: 16px;
       line-height: 1.6;
-      overflow-x: clip;
+      overflow-x: hidden;
     }
 
     /* Film grain — keep it subtle */
@@ -171,6 +171,8 @@
     .nav-gh-label { display: none; }
     @media (max-width: 479px) {
       .nav-gh { padding: 6px 10px; gap: 0; }
+      .theme-btn { padding: 6px 8px; gap: 0; }
+      .t-label { display: none; }
     }
     @media (min-width: 480px) { .nav-gh-label { display: inline; } }
 
@@ -230,6 +232,7 @@
       font-family: var(--mono); font-size: 0.75rem;
       letter-spacing: 0.12em; text-transform: uppercase;
       color: var(--muted); margin-bottom: 32px;
+      white-space: normal; word-break: break-word;
     }
     /* Time marker */
     .hero-time {
@@ -788,6 +791,7 @@
       border: 1px solid var(--rule);
       border-radius: 4px;
       overflow: hidden; margin-top: 44px;
+      max-width: 100%;
     }
     .code-head {
       display: flex; align-items: center; justify-content: space-between;
